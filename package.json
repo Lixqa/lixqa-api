@@ -13,10 +13,19 @@
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "lixqa",
+    "api",
+    "server"
+  ],
+  "author": "Lixqa <lixqadev@gmail.com>",
   "license": "ISC",
-  "description": "",
+  "description": "TypeScript-based API server for Lixqa's projects.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lixqa/lixqa-api"
+  },
+  "homepage": "https://github.com/lixqa/lixqa-api",
   "dependencies": {
     "@discordjs/collection": "^2.1.1",
     "chalk": "^4.1.2",

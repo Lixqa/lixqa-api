@@ -57,10 +57,5 @@
     "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.8.3"
-  },
-  "bundledDependencies": [
-    "@types/express",
-    "@types/msgpack5",
-    "@types/node"
-  ]
+  }
 }

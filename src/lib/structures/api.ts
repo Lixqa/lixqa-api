@@ -75,10 +75,11 @@ export class API<
     }
 
     // Token provided — try to find user
+    const authenticationCall = this.server.authenticationMethod(token);
     const authentication =
-      this.server.authenticationMethod instanceof Promise
-        ? await this.server.authenticationMethod(token)
-        : this.server.authenticationMethod(token);
+      authenticationCall instanceof Promise
+        ? await authenticationCall
+        : authenticationCall;
 
     // No user
     if (!authentication) {

@@ -20,22 +20,31 @@ import fs from 'fs';
 
 export const msgpackInstance = msgpack();
 
-export class Server<TAuth = any> {
+export class Server<TAuth = any, TServices = undefined> {
   private app: express.Application;
-  routes = new RouteManager(this);
-  schemas = new SchemaManager(this);
+  routes: RouteManager;
+  schemas: SchemaManager;
   connections = new ConnectionManager();
   ratelimits = new RatelimitManager();
-  config: Config<TAuth> = undefined as unknown as Config<TAuth>;
+  config: Config<TAuth, TServices> = undefined as unknown as Config<
+    TAuth,
+    TServices
+  >;
   authenticationMethod: (token: string) => Promise<TAuth> | TAuth;
   routesBasePath: string;
+  services: TServices;
 
   constructor(setup: {
     authenticationMethod: (token: string) => Promise<TAuth> | TAuth;
     routesBasePath: string;
+    services?: TServices;
   }) {
     this.authenticationMethod = setup.authenticationMethod;
     this.routesBasePath = setup.routesBasePath;
+    this.services = setup.services as TServices;
+
+    this.routes = new RouteManager(this);
+    this.schemas = new SchemaManager(this);
 
     this.app = express();
 
@@ -71,12 +80,12 @@ export class Server<TAuth = any> {
     this.app.use(express.urlencoded({ extended: true }));
 
     this.app.use((_req, _res, next) => {
-      const req = _req as Request<TAuth>;
+      const req = _req as Request<TAuth, TServices>;
       const res = _res as Response;
 
       const resolved = this.routes.resolveUrl(req.path);
 
-      const api = new API<any, any, any, any, TAuth>(
+      const api = new API<any, any, any, any, TAuth, TServices>(
         req,
         res,
         resolved?.route,
@@ -102,7 +111,7 @@ export class Server<TAuth = any> {
         _: ExpressResponse,
         next: ExpressNextFunction,
       ) => {
-        const req = _req as Request<TAuth>;
+        const req = _req as Request<TAuth, TServices>;
 
         const error = err as SyntaxError & { status?: number; body?: string };
         if (
@@ -118,7 +127,7 @@ export class Server<TAuth = any> {
     );
 
     this.app.use(async (_req) => {
-      const req = _req as Request<TAuth>;
+      const req = _req as Request<TAuth, TServices>;
 
       const api = req.api;
       const route = api.route!;
@@ -188,7 +197,10 @@ export class Server<TAuth = any> {
 
       try {
         const configModule = require(filePath);
-        this.config = (configModule?.default ?? configModule) as Config<TAuth>;
+        this.config = (configModule?.default ?? configModule) as Config<
+          TAuth,
+          TServices
+        >;
         console.log('Inited config', this.config);
         return;
       } catch (err) {

@@ -7,9 +7,9 @@ import { Server } from '../structures/server';
 
 export class SchemaManager {
   items: Collection<string, Schema> = new Collection();
-  server: Server;
+  server: any;
 
-  constructor(server: Server) {
+  constructor(server: any) {
     this.server = server;
   }
 

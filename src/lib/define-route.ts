@@ -3,6 +3,9 @@ import { RouteDefinition, SchemaDefinition } from './typings/types';
 export function defineRoute<
   Schema extends SchemaDefinition = object,
   TAuth = any,
->(route: RouteDefinition<Schema, TAuth>): RouteDefinition<Schema, TAuth> {
+  TServices = undefined,
+>(
+  route: RouteDefinition<Schema, TAuth, TServices>,
+): RouteDefinition<Schema, TAuth, TServices> {
   return route;
 }

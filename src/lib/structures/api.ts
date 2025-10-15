@@ -7,7 +7,7 @@ import { Route } from './route';
 import z from 'zod';
 import { getReasonPhrase, StatusCodes } from 'http-status-codes';
 import { ConnectionManager } from '../managers/connections';
-import { Server, msgpackInstance } from './server';
+import { msgpackInstance } from './server';
 
 export class API<
   TBody = unknown,
@@ -15,20 +15,22 @@ export class API<
   TQuery = unknown,
   TResponse = unknown,
   TAuth = any,
+  TServices = undefined,
 > {
   private req: Request;
   private res: Response;
   route: Route | undefined;
   connections: ConnectionManager;
   authentication: TAuth;
-  server: Server;
+  server: any;
+  services: TServices;
 
   constructor(
     _req: ExpressRequest,
     res: ExpressResponse,
     route: Route | undefined,
     connections: ConnectionManager,
-    server: Server,
+    server: any,
   ) {
     const req = _req as Request;
     req.startedAt = new Date();
@@ -40,6 +42,7 @@ export class API<
     this.connections = connections;
     this.server = server;
     this.authentication = undefined as TAuth;
+    this.services = server.services as TServices;
   }
 
   async authorize() {

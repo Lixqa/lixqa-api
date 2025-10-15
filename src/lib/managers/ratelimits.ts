@@ -18,7 +18,7 @@ export class RatelimitManager {
     setInterval(() => this.cleanup(), 100);
   }
 
-  check(api: API) {
+  check(api: API<any, any, any, any, any, any>) {
     if (!api.route) return false;
 
     const settings = api.route.ratelimitsFor(api.method);
@@ -65,7 +65,7 @@ export class RatelimitManager {
     return item.limited;
   }
 
-  getClientIdentifier(api: API) {
+  getClientIdentifier(api: API<any, any, any, any, any, any>) {
     if (!api.route) return `RANDOM:${Random.uuid()}`;
 
     const settings = api.route.ratelimitsFor(api.method);
@@ -82,7 +82,7 @@ export class RatelimitManager {
     }
   }
 
-  getRouteIdentifier(api: API) {
+  getRouteIdentifier(api: API<any, any, any, any, any, any>) {
     if (!api.route) return `RANDOM:${Random.uuid()}`;
 
     const settings = api.route.ratelimitsFor(api.method);
@@ -105,7 +105,7 @@ export class RatelimitManager {
     this.items = this.items.filter((item) => item.end > Date.now());
   }
 
-  increase(api: API) {
+  increase(api: API<any, any, any, any, any, any>) {
     if (!api.route) return;
 
     const clientIdentifier = this.getClientIdentifier(api);

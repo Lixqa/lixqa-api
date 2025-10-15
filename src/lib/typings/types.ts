@@ -7,13 +7,13 @@ import type {
 
 export type RouteMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
-export type RouteSettings<TAuth = any> = {
+export type RouteSettings<TAuth = any, TServices = undefined> = {
   unauthed: boolean;
   disabled: boolean;
   moved: boolean;
   authOverwrite:
     | ((
-        api: API<unknown, unknown, unknown, unknown, TAuth>,
+        api: API<unknown, unknown, unknown, unknown, TAuth, TServices>,
       ) => boolean | Promise<boolean>)
     | null;
 };
@@ -50,7 +50,8 @@ type APIDeprecatedSend<
   TQuery = unknown,
   TResponse = unknown,
   TAuth = any,
-> = Omit<API<TBody, TParams, TQuery, TResponse, TAuth>, 'send'> & {
+  TServices = undefined,
+> = Omit<API<TBody, TParams, TQuery, TResponse, TAuth, TServices>, 'send'> & {
   /**
    * @deprecated Use sendTyped instead for type-safe responses when a response schema is defined
    */
@@ -66,14 +67,20 @@ type APIDeprecatedSend<
 };
 
 // Conditional API type that includes sendTyped only when response schema exists
-export type ConditionalAPI<V, M extends RouteMethod, TAuth = any> =
+export type ConditionalAPI<
+  V,
+  M extends RouteMethod,
+  TAuth = any,
+  TServices = undefined,
+> =
   HasResponseSchema<V, M> extends true
     ? APIDeprecatedSend<
         GetSchemaType<V, M, 'body'>,
         GetSchemaType<V, M, 'params'>,
         GetSchemaType<V, M, 'query'>,
         GetSchemaType<V, M, 'response'>,
-        TAuth
+        TAuth,
+        TServices
       >
     : Omit<
         API<
@@ -81,7 +88,8 @@ export type ConditionalAPI<V, M extends RouteMethod, TAuth = any> =
           GetSchemaType<V, M, 'params'>,
           GetSchemaType<V, M, 'query'>,
           GetSchemaType<V, M, 'response'>,
-          TAuth
+          TAuth,
+          TServices
         >,
         'sendTyped'
       >;
@@ -89,12 +97,13 @@ export type ConditionalAPI<V, M extends RouteMethod, TAuth = any> =
 export type RouteDefinition<
   V extends SchemaDefinition = object,
   TAuth = any,
+  TServices = undefined,
 > = Partial<{
-  [M in RouteMethod]: (api: ConditionalAPI<V, M, TAuth>) => void;
+  [M in RouteMethod]: (api: ConditionalAPI<V, M, TAuth, TServices>) => void;
 }> & {
   schema?: V;
-  settings?: Partial<RouteSettings<TAuth>> & {
-    [M in RouteMethod]?: Partial<RouteSettings<TAuth>>;
+  settings?: Partial<RouteSettings<TAuth, TServices>> & {
+    [M in RouteMethod]?: Partial<RouteSettings<TAuth, TServices>>;
   };
   ratelimits?: Partial<RouteRatelimits> & {
     [M in RouteMethod]?: Partial<RouteRatelimits>;
@@ -148,17 +157,18 @@ export type GetSchemaType<
           : unknown
   : unknown;
 
-export type Config<TAuth = any> = {
+export type Config<TAuth = any, TServices = undefined> = {
   port: number;
   hostname: string;
   responseDetailLevel: 'full' | 'mid' | 'low' | 'blank';
-  defaults: RouteSettings<TAuth>;
+  defaults: RouteSettings<TAuth, TServices>;
   ratelimits: RouteRatelimits;
 };
 
-export interface Request<TAuth = any> extends ExpressRequest {
+export interface Request<TAuth = any, TServices = undefined>
+  extends ExpressRequest {
   startedAt: Date;
-  api: API<unknown, unknown, unknown, unknown, TAuth>;
+  api: API<unknown, unknown, unknown, unknown, TAuth, TServices>;
   _body: any;
   _params: {
     [key: string]: string;

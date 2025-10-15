@@ -1,15 +1,14 @@
 import { filePathToRoutePath } from '../helpers/parser';
 import { RouteDefinition, RouteMethod } from '../typings/types';
 import { Schema } from './schema';
-import { Server } from './server';
 
 export class Route {
-  server: Server;
+  server: any;
   filePath: string;
   file: RouteDefinition;
   schema?: Schema;
 
-  constructor(server: Server, filePath: string) {
+  constructor(server: any, filePath: string) {
     this.server = server;
     this.filePath = filePath;
     this.file = this.loadFile();

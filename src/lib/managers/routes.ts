@@ -10,9 +10,9 @@ import { Server } from '../structures/server';
 export class RouteManager {
   items: Collection<string, Route> = new Collection();
 
-  server: Server;
+  server: any;
 
-  constructor(server: Server) {
+  constructor(server: any) {
     this.server = server;
   }
 

@@ -110,11 +110,17 @@ function superRefineFiles(
       });
     }
     if (options.allowedExtensions.length > 0) {
-      const ext = path.extname(file.originalname).toLowerCase();
-      if (!options.allowedExtensions.includes(ext)) {
+      const fileExt = path
+        .extname(file.originalname)
+        .toLowerCase()
+        .replace(/^\./, '');
+      const allowedExts = options.allowedExtensions.map((e) =>
+        (e || '').toLowerCase().replace(/^\./, ''),
+      );
+      if (!allowedExts.includes(fileExt)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `File ${file.originalname} has invalid extension: ${ext}`,
+          message: `File ${file.originalname} has invalid extension: .${fileExt}`,
           path: pathSuffix,
         });
       }

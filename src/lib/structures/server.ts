@@ -104,6 +104,12 @@ export class Server<TAuth = any, TServices = undefined> {
 
       // If multipart, parse with multer now, using effective config (global or per-route)
       if (req.is('multipart/form-data')) {
+        const contentType = (req.headers['content-type'] ?? '').toString();
+        if (!/boundary=/i.test(contentType)) {
+          return api.throw(StatusCodes.BAD_REQUEST, {
+            data: 'Invalid multipart/form-data: missing boundary',
+          });
+        }
         const globalUploadConfig = this.config?.upload ?? {
           store: 'memory' as const,
         };
@@ -122,7 +128,11 @@ export class Server<TAuth = any, TServices = undefined> {
         const upload = multer({ storage }).any();
 
         upload(_req as any, _res as any, (err: any) => {
-          if (err) return next(err);
+          if (err) {
+            return api.throw(StatusCodes.BAD_REQUEST, {
+              data: err?.message || 'Invalid multipart/form-data',
+            });
+          }
           req._body = req.body as any;
           req._params = resolved.params as any;
           req._query = req.query as any;

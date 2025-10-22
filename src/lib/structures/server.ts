@@ -17,6 +17,9 @@ import requestIp from 'request-ip';
 import { RatelimitManager } from '../managers/ratelimits';
 import path from 'path';
 import fs from 'fs';
+import multer from 'multer';
+import { createMulterStorage } from '../helpers/file-validators';
+import { FileValidationOptions } from '../helpers/file-validators';
 
 export const msgpackInstance = msgpack();
 
@@ -79,6 +82,8 @@ export class Server<TAuth = any, TServices = undefined> {
     this.app.use(express.json({ type: 'application/json' }));
     this.app.use(express.urlencoded({ extended: true }));
 
+    // multipart/form-data support for both forms and file uploads will be applied after route resolution
+
     this.app.use((_req, _res, next) => {
       const req = _req as Request<TAuth, TServices>;
       const res = _res as Response;
@@ -97,10 +102,80 @@ export class Server<TAuth = any, TServices = undefined> {
 
       req.api = api;
 
+      // If multipart, parse with multer now, using effective config (global or per-route)
+      if (req.is('multipart/form-data')) {
+        const globalUploadConfig = this.config?.upload ?? {
+          store: 'memory' as const,
+        };
+        const perRouteSettings = api.route?.settingsFor(api.method) as any;
+        const effective = (perRouteSettings?.upload ?? globalUploadConfig) as {
+          store: 'memory' | 'disk';
+          diskPath?: string;
+        };
+
+        // Try to derive validation options from schema if present
+        const methodSchema: any = api.route?.schema?.file?.[api.method];
+        const fileOptions: Partial<FileValidationOptions> =
+          (methodSchema?.files as any)?.__fileOptions ?? {};
+
+        const storage = createMulterStorage(effective);
+        const upload = multer({
+          storage,
+          limits: {
+            fileSize: fileOptions.maxSize ?? undefined,
+            files: fileOptions.multiple
+              ? (fileOptions.maxFiles ?? undefined)
+              : 1,
+          },
+          fileFilter: (_reqf, file, cb) => {
+            const ext =
+              fileOptions.allowedExtensions && file.originalname
+                ? path.extname(file.originalname).toLowerCase()
+                : undefined;
+            if (
+              fileOptions.allowedMimeTypes &&
+              Array.isArray(fileOptions.allowedMimeTypes) &&
+              fileOptions.allowedMimeTypes.length > 0 &&
+              !fileOptions.allowedMimeTypes.includes(file.mimetype)
+            ) {
+              return cb(null, false);
+            }
+            if (
+              fileOptions.allowedExtensions &&
+              Array.isArray(fileOptions.allowedExtensions) &&
+              fileOptions.allowedExtensions.length > 0 &&
+              ext &&
+              !fileOptions.allowedExtensions.includes(ext)
+            ) {
+              return cb(null, false);
+            }
+            cb(null, true);
+          },
+        }).any();
+
+        upload(_req as any, _res as any, (err: any) => {
+          if (err) return next(err);
+          req._body = req.body as any;
+          req._params = resolved.params as any;
+          req._query = req.query as any;
+          const files = (req as any).files as any[] | undefined;
+          (req as any)._files =
+            files && files.length <= 1 ? files[0] : (files ?? undefined);
+
+          // Enforce required after parse
+          if (fileOptions.required && !(req as any)._files) {
+            return api.throw(StatusCodes.BAD_REQUEST, {
+              data: { files: 'Files are required' },
+            });
+          }
+          next();
+        });
+        return;
+      }
+
       req._body = req.body;
       req._params = resolved.params as any;
       req._query = req.query as any;
-
       next();
     });
 

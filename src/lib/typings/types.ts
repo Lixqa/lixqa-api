@@ -16,6 +16,10 @@ export type RouteSettings<TAuth = any, TServices = undefined> = {
         api: API<unknown, unknown, unknown, unknown, TAuth, TServices>,
       ) => boolean | Promise<boolean>)
     | null;
+  upload?: {
+    store: 'memory' | 'disk';
+    diskPath?: string;
+  } | null;
 };
 
 export type RouteRatelimits = {
@@ -33,7 +37,12 @@ export type SchemaDefinition = Partial<{
   Partial<{
     [M in RouteMethod]: M extends 'GET'
       ? { query?: z.ZodTypeAny; response?: z.ZodTypeAny }
-      : { query?: z.ZodTypeAny; body?: z.ZodTypeAny; response?: z.ZodTypeAny };
+      : {
+          query?: z.ZodTypeAny;
+          body?: z.ZodTypeAny;
+          files?: z.ZodTypeAny;
+          response?: z.ZodTypeAny;
+        };
   }>;
 
 // Helper type to check if response schema exists
@@ -163,6 +172,10 @@ export type Config<TAuth = any, TServices = undefined> = {
   responseDetailLevel: 'full' | 'mid' | 'low' | 'blank';
   defaults: RouteSettings<TAuth, TServices>;
   ratelimits: RouteRatelimits;
+  upload?: {
+    store: 'memory' | 'disk';
+    diskPath?: string;
+  };
 };
 
 export interface Request<TAuth = any, TServices = undefined>
@@ -176,6 +189,7 @@ export interface Request<TAuth = any, TServices = undefined>
   _query: {
     [key: string]: string;
   };
+  _files?: any;
 }
 
 export type Response = ExpressResponse;

@@ -3,7 +3,6 @@ import { Schema } from '../structures/schema';
 import { Collection } from '@discordjs/collection';
 import { findFilesRecursive } from '../helpers/utils';
 import { Logger } from '../helpers/logger';
-import { Server } from '../structures/server';
 
 export class SchemaManager {
   items: Collection<string, Schema> = new Collection();

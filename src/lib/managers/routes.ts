@@ -5,7 +5,6 @@ import { Schema } from '../structures/schema';
 import { match } from 'path-to-regexp';
 import { Collection } from '@discordjs/collection';
 import { findFilesRecursive } from '../helpers/utils';
-import { Server } from '../structures/server';
 
 export class RouteManager {
   items: Collection<string, Route> = new Collection();

@@ -99,13 +99,14 @@ export class API<
 
   validateSchema() {
     const errors: {
-      [key in 'body' | 'params' | 'query']:
+      [key in 'body' | 'params' | 'query' | 'files']:
         | z.core.$ZodFormattedError<unknown, string>
         | undefined;
     } = {
       body: undefined,
       params: undefined,
       query: undefined,
+      files: undefined,
     };
 
     if (!this.route) return errors;
@@ -131,6 +132,23 @@ export class API<
         errors.body = z.formatError(result.error);
       } else {
         this.req._body = result.data;
+      }
+    }
+
+    // Validate uploaded files if schema provided
+    if (
+      method !== 'GET' &&
+      methodSchema &&
+      'files' in methodSchema &&
+      (methodSchema as any).files
+    ) {
+      const filesSchema = (methodSchema as any).files as z.ZodTypeAny;
+      const result = filesSchema.safeParse((this.req as any)._files);
+      if (!result.success) {
+        console.warn('Files validation failed.');
+        errors.files = z.formatError(result.error);
+      } else {
+        (this.req as any)._files = result.data as any;
       }
     }
 
@@ -244,6 +262,10 @@ export class API<
 
   get query() {
     return this.req._query as TQuery;
+  }
+
+  get files() {
+    return (this.req as any)._files;
   }
 
   get headers() {

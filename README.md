@@ -10,6 +10,7 @@ A TypeScript-based API server framework for building robust, type-safe REST APIs
 - 🔐 **Authentication**: Built-in authentication system with customizable auth methods
 - ⚡ **Rate Limiting**: Configurable rate limiting per endpoint with multiple scopes
 - 📝 **Schema Validation**: Zod-based request/response validation
+- 📤 **File Uploads**: Built-in multipart/form-data with schema-based file validation
 - 🛡️ **Error Handling**: Comprehensive error handling and logging
 - 📊 **Request Tracking**: Built-in request timing and monitoring
 - 🔧 **Flexible Configuration**: Highly configurable server settings
@@ -248,6 +249,10 @@ interface Config {
   responseDetailLevel: 'full' | 'mid' | 'low' | 'blank';
   defaults: RouteSettings;
   ratelimits: RouteRatelimits;
+  upload?: {
+    store: 'memory' | 'disk';
+    diskPath?: string;
+  };
 }
 ```
 
@@ -312,6 +317,7 @@ Defines a Zod schema for request/response validation.
   POST?: {
     query?: z.ZodTypeAny;
     body?: z.ZodTypeAny;
+    files?: z.ZodTypeAny; // File validation schema
     response?: z.ZodTypeAny;
   };
   // ... other methods
@@ -322,15 +328,76 @@ Defines a Zod schema for request/response validation.
 
 ### Server Configuration
 
-```typescript
+````typescript
 interface Config {
   port: number;
   hostname: string;
   responseDetailLevel: 'full' | 'mid' | 'low' | 'blank';
   defaults: RouteSettings;
   ratelimits: RouteRatelimits;
+  upload?: {
+    store: 'memory' | 'disk';
+    diskPath?: string;
+  };
 }
+
+## File Uploads
+
+### Global or Per-Route Upload Settings
+
+```ts
+// lixqa-api.config.ts
+export default defineConfig({
+  // ...
+  upload: {
+    store: 'memory', // or 'disk'
+    diskPath: './uploads',
+  },
+});
+
+// In a route (overrides global)
+export default defineRoute({
+  settings: {
+    POST: {
+      upload: { store: 'disk', diskPath: './uploads/images' },
+    },
+  },
+});
+````
+
+### Validating Files with Zod Helpers
+
+```ts
+import { defineSchema, z, zFileSchema } from '@lixqa-api/server';
+
+export default defineSchema({
+  POST: {
+    body: z.object({ title: z.string() }),
+    files: zFileSchema
+      .builder()
+      .required()
+      .multiple()
+      .maxFiles(5)
+      .maxSize(10 * 1024 * 1024)
+      .mimeTypes(['image/jpeg', 'image/png'])
+      .extensions(['.jpg', '.jpeg', '.png'])
+      .build(),
+  },
+});
 ```
+
+### Accessing Files in Handlers
+
+```ts
+export default defineRoute({
+  POST: (api) => {
+    const files = api.files; // single file or array depending on schema
+    api.send({ uploaded: Array.isArray(files) ? files.length : files ? 1 : 0 });
+  },
+});
+```
+
+````
 
 ### Route Settings
 
@@ -341,7 +408,7 @@ interface RouteSettings {
   moved: boolean; // Mark route as moved
   authOverwrite: Function | null; // Custom auth logic
 }
-```
+````
 
 ### Rate Limiting
 

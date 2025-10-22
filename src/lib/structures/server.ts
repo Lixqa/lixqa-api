@@ -119,39 +119,7 @@ export class Server<TAuth = any, TServices = undefined> {
           (methodSchema?.files as any)?.__fileOptions ?? {};
 
         const storage = createMulterStorage(effective);
-        const upload = multer({
-          storage,
-          limits: {
-            fileSize: fileOptions.maxSize ?? undefined,
-            files: fileOptions.multiple
-              ? (fileOptions.maxFiles ?? undefined)
-              : 1,
-          },
-          fileFilter: (_reqf, file, cb) => {
-            const ext =
-              fileOptions.allowedExtensions && file.originalname
-                ? path.extname(file.originalname).toLowerCase()
-                : undefined;
-            if (
-              fileOptions.allowedMimeTypes &&
-              Array.isArray(fileOptions.allowedMimeTypes) &&
-              fileOptions.allowedMimeTypes.length > 0 &&
-              !fileOptions.allowedMimeTypes.includes(file.mimetype)
-            ) {
-              return cb(null, false);
-            }
-            if (
-              fileOptions.allowedExtensions &&
-              Array.isArray(fileOptions.allowedExtensions) &&
-              fileOptions.allowedExtensions.length > 0 &&
-              ext &&
-              !fileOptions.allowedExtensions.includes(ext)
-            ) {
-              return cb(null, false);
-            }
-            cb(null, true);
-          },
-        }).any();
+        const upload = multer({ storage }).any();
 
         upload(_req as any, _res as any, (err: any) => {
           if (err) return next(err);
@@ -163,18 +131,7 @@ export class Server<TAuth = any, TServices = undefined> {
             ? (files ?? [])
             : ((files && files[0]) ?? undefined);
 
-          // Enforce required after parse
-          if (fileOptions.required) {
-            const has = fileOptions.multiple
-              ? Array.isArray((req as any)._files) &&
-                ((req as any)._files as any[]).length > 0
-              : Boolean((req as any)._files);
-            if (!has) {
-              return api.throw(StatusCodes.BAD_REQUEST, {
-                data: { files: 'Files are required' },
-              });
-            }
-          }
+          // Do not enforce required here; allow Zod schema to generate structured errors
           next();
         });
         return;

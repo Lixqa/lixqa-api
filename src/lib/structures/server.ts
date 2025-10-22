@@ -159,14 +159,21 @@ export class Server<TAuth = any, TServices = undefined> {
           req._params = resolved.params as any;
           req._query = req.query as any;
           const files = (req as any).files as any[] | undefined;
-          (req as any)._files =
-            files && files.length <= 1 ? files[0] : (files ?? undefined);
+          (req as any)._files = fileOptions.multiple
+            ? (files ?? [])
+            : ((files && files[0]) ?? undefined);
 
           // Enforce required after parse
-          if (fileOptions.required && !(req as any)._files) {
-            return api.throw(StatusCodes.BAD_REQUEST, {
-              data: { files: 'Files are required' },
-            });
+          if (fileOptions.required) {
+            const has = fileOptions.multiple
+              ? Array.isArray((req as any)._files) &&
+                ((req as any)._files as any[]).length > 0
+              : Boolean((req as any)._files);
+            if (!has) {
+              return api.throw(StatusCodes.BAD_REQUEST, {
+                data: { files: 'Files are required' },
+              });
+            }
           }
           next();
         });

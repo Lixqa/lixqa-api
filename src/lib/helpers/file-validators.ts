@@ -26,101 +26,140 @@ export class FileValidator {
       ...options,
     };
   }
+}
 
-  validate(files: any): { valid: boolean; errors: string[]; files: any[] } {
-    const errors: string[] = [];
-    const fileArray = this.normalizeFiles(files);
+type UploadedFile = {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination?: string;
+  filename?: string;
+  path?: string;
+  buffer?: Buffer;
+};
 
-    if (this.options.required && fileArray.length === 0) {
-      errors.push('Files are required');
-      return { valid: false, errors, files: [] };
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function superRefineFiles(
+  val: unknown,
+  ctx: z.RefinementCtx,
+  options: Required<FileValidationOptions>,
+) {
+  const isArray = Array.isArray(val);
+  const isFileObj = !isArray && val && typeof val === 'object';
+
+  if (val == null || (isArray && (val as unknown[]).length === 0)) {
+    if (options.required) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Files are required',
+      });
     }
-
-    if (!this.options.multiple && fileArray.length > 1) {
-      errors.push('Only one file is allowed');
-      return { valid: false, errors, files: [] };
-    }
-
-    if (fileArray.length > this.options.maxFiles) {
-      errors.push(`Maximum ${this.options.maxFiles} files allowed`);
-      return { valid: false, errors, files: [] };
-    }
-
-    for (const file of fileArray) {
-      this.validateSingleFile(file, errors);
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors,
-      files: fileArray,
-    };
+    return;
   }
 
-  private normalizeFiles(files: any): any[] {
-    if (!files) return [];
-    if (Array.isArray(files)) return files;
-    return [files];
+  if (!isArray && !isFileObj) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Invalid file input',
+    });
+    return;
   }
 
-  private validateSingleFile(file: any, errors: string[]): void {
-    if (this.options.maxSize && file.size > this.options.maxSize) {
-      errors.push(
-        `File ${file.originalname} exceeds maximum size of ${this.formatBytes(this.options.maxSize)}`,
-      );
-    }
+  const files = (
+    isArray ? (val as UploadedFile[]) : [val as UploadedFile]
+  ).filter((f) => !!f);
 
+  if (!options.multiple && files.length > 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Only one file is allowed',
+    });
+  }
+  if (files.length > options.maxFiles) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Maximum ${options.maxFiles} files allowed`,
+    });
+  }
+
+  const checkOne = (file: UploadedFile, pathSuffix: (string | number)[]) => {
+    if (options.maxSize && file.size > options.maxSize) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `File ${file.originalname} exceeds maximum size of ${formatBytes(options.maxSize)}`,
+        path: pathSuffix,
+      });
+    }
     if (
-      this.options.allowedMimeTypes.length > 0 &&
-      !this.options.allowedMimeTypes.includes(file.mimetype)
+      options.allowedMimeTypes.length > 0 &&
+      !options.allowedMimeTypes.includes(file.mimetype)
     ) {
-      errors.push(
-        `File ${file.originalname} has invalid MIME type: ${file.mimetype}`,
-      );
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `File ${file.originalname} has invalid MIME type: ${file.mimetype}`,
+        path: pathSuffix,
+      });
     }
-
-    if (this.options.allowedExtensions.length > 0) {
+    if (options.allowedExtensions.length > 0) {
       const ext = path.extname(file.originalname).toLowerCase();
-      if (!this.options.allowedExtensions.includes(ext)) {
-        errors.push(`File ${file.originalname} has invalid extension: ${ext}`);
+      if (!options.allowedExtensions.includes(ext)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `File ${file.originalname} has invalid extension: ${ext}`,
+          path: pathSuffix,
+        });
       }
     }
-  }
+  };
 
-  private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  if (isArray) {
+    (val as UploadedFile[]).forEach((f, i) => checkOne(f, [i]));
+  } else {
+    checkOne(val as UploadedFile, []);
   }
 }
 
 export const createFileSchema = (options: FileValidationOptions = {}) => {
-  const validator = new FileValidator(options);
-  return z.custom(
-    (val) => {
-      const result = validator.validate(val);
-      return result.valid;
-    },
-    {
-      message: `File validation failed`,
-    },
-  );
+  const opts: Required<FileValidationOptions> = {
+    maxSize: 5 * 1024 * 1024,
+    allowedMimeTypes: [],
+    allowedExtensions: [],
+    required: false,
+    multiple: false,
+    maxFiles: 10,
+    ...options,
+  };
+
+  const schema = z
+    .any()
+    .superRefine((val, ctx) => superRefineFiles(val, ctx, opts));
+  (schema as any).__fileOptions = opts;
+  return schema;
 };
 
 export const zFile = (options: FileValidationOptions = {}) => {
-  const schema = z.custom(
-    (val) => {
-      const validator = new FileValidator(options);
-      const result = validator.validate(val);
-      return result.valid;
-    },
-    {
-      message: `File validation failed`,
-    },
-  );
-  (schema as any).__fileOptions = options;
+  const opts: Required<FileValidationOptions> = {
+    maxSize: 5 * 1024 * 1024,
+    allowedMimeTypes: [],
+    allowedExtensions: [],
+    required: false,
+    multiple: false,
+    maxFiles: 10,
+    ...options,
+  };
+  const schema = z
+    .any()
+    .superRefine((val, ctx) => superRefineFiles(val, ctx, opts));
+  (schema as any).__fileOptions = opts;
   return schema;
 };
 

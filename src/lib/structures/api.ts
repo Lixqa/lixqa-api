@@ -143,7 +143,10 @@ export class API<
       (methodSchema as any).files
     ) {
       const filesSchema = (methodSchema as any).files as z.ZodTypeAny;
-      const result = filesSchema.safeParse((this.req as any)._files);
+      // Always validate against the raw array, shape is enforced by server naming rule already
+      const rawFiles = ((this.req as any)._filesRaw ??
+        (this.req as any)._files) as any;
+      const result = filesSchema.safeParse(rawFiles);
       if (!result.success) {
         console.warn('Files validation failed.');
         errors.files = z.formatError(result.error);

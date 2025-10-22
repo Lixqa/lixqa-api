@@ -137,9 +137,26 @@ export class Server<TAuth = any, TServices = undefined> {
           req._params = resolved.params as any;
           req._query = req.query as any;
           const files = (req as any).files as any[] | undefined;
+          // Store raw array for validation
+          (req as any)._filesRaw = files ?? [];
+          // Shape for API access
           (req as any)._files = fileOptions.multiple
-            ? (files ?? [])
+            ? ((files ?? []) as any[])
             : ((files && files[0]) ?? undefined);
+
+          // Enforce field name convention based on schema option
+          if (files && files.length > 0) {
+            const invalid = fileOptions.multiple
+              ? files.some((f) => f.fieldname !== 'files')
+              : files.some((f) => f.fieldname !== 'file');
+            if (invalid) {
+              return api.throw(StatusCodes.BAD_REQUEST, {
+                data: {
+                  files: `Invalid file field name. Use '${fileOptions.multiple ? 'files' : 'file'}' in FormData`,
+                },
+              });
+            }
+          }
 
           // Do not enforce required here; allow Zod schema to generate structured errors
           next();

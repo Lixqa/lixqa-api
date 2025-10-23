@@ -2,7 +2,13 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import type { Config, Request, Response, RouteMethod } from '../typings/types';
+import type {
+  Config,
+  Request,
+  Response,
+  RouteMethod,
+  UploadedFile,
+} from '../typings/types';
 import { Route } from './route';
 import z from 'zod';
 import { getReasonPhrase, StatusCodes } from 'http-status-codes';
@@ -16,6 +22,7 @@ export class API<
   TResponse = unknown,
   TAuth = any,
   TServices = undefined,
+  TFiles = unknown,
 > {
   private req: Request;
   private res: Response;
@@ -267,8 +274,8 @@ export class API<
     return this.req._query as TQuery;
   }
 
-  get files() {
-    return (this.req as any)._files;
+  get files(): TFiles extends unknown ? unknown : UploadedFile[] {
+    return (((this.req as any)._files as UploadedFile[]) ?? []) as any;
   }
 
   get headers() {

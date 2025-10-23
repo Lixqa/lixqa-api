@@ -60,7 +60,11 @@ type APIDeprecatedSend<
   TResponse = unknown,
   TAuth = any,
   TServices = undefined,
-> = Omit<API<TBody, TParams, TQuery, TResponse, TAuth, TServices>, 'send'> & {
+  TFiles = unknown,
+> = Omit<
+  API<TBody, TParams, TQuery, TResponse, TAuth, TServices, TFiles>,
+  'send'
+> & {
   /**
    * @deprecated Use sendTyped instead for type-safe responses when a response schema is defined
    */
@@ -89,7 +93,8 @@ export type ConditionalAPI<
         GetSchemaType<V, M, 'query'>,
         GetSchemaType<V, M, 'response'>,
         TAuth,
-        TServices
+        TServices,
+        GetSchemaType<V, M, 'files'>
       >
     : Omit<
         API<
@@ -98,7 +103,8 @@ export type ConditionalAPI<
           GetSchemaType<V, M, 'query'>,
           GetSchemaType<V, M, 'response'>,
           TAuth,
-          TServices
+          TServices,
+          GetSchemaType<V, M, 'files'>
         >,
         'sendTyped'
       >;
@@ -150,10 +156,16 @@ type ExtractResponse<V, M extends RouteMethod> = V extends {
     : unknown
   : unknown;
 
+type ExtractFiles<V, M extends RouteMethod> = V extends {
+  [K in M]: { files: z.ZodTypeAny };
+}
+  ? UploadedFile[]
+  : unknown;
+
 export type GetSchemaType<
   V,
   M extends RouteMethod,
-  K extends 'body' | 'params' | 'query' | 'response',
+  K extends 'body' | 'params' | 'query' | 'response' | 'files',
 > = V extends object
   ? K extends 'params'
     ? ExtractParams<V>
@@ -163,7 +175,9 @@ export type GetSchemaType<
         ? ExtractQuery<V, M>
         : K extends 'response'
           ? ExtractResponse<V, M>
-          : unknown
+          : K extends 'files'
+            ? ExtractFiles<V, M>
+            : unknown
   : unknown;
 
 export type Config<TAuth = any, TServices = undefined> = {
@@ -193,7 +207,7 @@ export type UploadedFile = {
 export interface Request<TAuth = any, TServices = undefined>
   extends ExpressRequest {
   startedAt: Date;
-  api: API<unknown, unknown, unknown, unknown, TAuth, TServices>;
+  api: API<unknown, unknown, unknown, unknown, TAuth, TServices, unknown>;
   _body: any;
   _params: {
     [key: string]: string;

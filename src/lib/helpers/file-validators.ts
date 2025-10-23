@@ -152,7 +152,7 @@ export const createFileSchema = (options: FileValidationOptions = {}) => {
   return schema;
 };
 
-export const zFile = (options: FileValidationOptions = {}) => {
+const zFileBase = (options: FileValidationOptions = {}) => {
   const opts: Required<FileValidationOptions> = {
     maxSize: 5 * 1024 * 1024,
     allowedMimeTypes: [],
@@ -168,6 +168,33 @@ export const zFile = (options: FileValidationOptions = {}) => {
   (schema as any).__fileOptions = opts;
   return schema;
 };
+
+// Chainable API that returns a Zod schema at every step (no build needed)
+export type FileChain = z.ZodTypeAny & {
+  required: () => FileChain;
+  optional: () => FileChain;
+  multiple: () => FileChain;
+  maxSize: (size: number) => FileChain;
+  maxFiles: (count: number) => FileChain;
+  mimeTypes: (types: string[]) => FileChain;
+  extensions: (exts: string[]) => FileChain;
+};
+
+export function zFileChain(options: FileValidationOptions = {}): FileChain {
+  const schema = zFileBase(options) as unknown as FileChain;
+  (schema as any).required = () => zFileChain({ ...options, required: true });
+  (schema as any).optional = () => zFileChain({ ...options, required: false });
+  (schema as any).multiple = () => zFileChain({ ...options, multiple: true });
+  (schema as any).maxSize = (size: number) =>
+    zFileChain({ ...options, maxSize: size });
+  (schema as any).maxFiles = (count: number) =>
+    zFileChain({ ...options, maxFiles: count });
+  (schema as any).mimeTypes = (types: string[]) =>
+    zFileChain({ ...options, allowedMimeTypes: types });
+  (schema as any).extensions = (exts: string[]) =>
+    zFileChain({ ...options, allowedExtensions: exts });
+  return schema;
+}
 
 class FileSchemaBuilder {
   private options: FileValidationOptions = {};
@@ -212,31 +239,36 @@ class FileSchemaBuilder {
   }
 
   build() {
-    return zFile(this.options);
+    return zFileBase(this.options);
   }
 }
 
-export const zFileSchema = {
-  file: (options: FileValidationOptions = {}) => zFile(options),
+export const zFile = Object.assign(zFileBase, {
+  file: (options: FileValidationOptions = {}) => zFileBase(options),
   image: (options: FileValidationOptions = {}) =>
-    zFile({ ...FileValidationPresets.image, ...options }),
+    zFileBase({ ...FileValidationPresets.image, ...options }),
   document: (options: FileValidationOptions = {}) =>
-    zFile({ ...FileValidationPresets.document, ...options }),
+    zFileBase({ ...FileValidationPresets.document, ...options }),
   video: (options: FileValidationOptions = {}) =>
-    zFile({ ...FileValidationPresets.video, ...options }),
+    zFileBase({ ...FileValidationPresets.video, ...options }),
   audio: (options: FileValidationOptions = {}) =>
-    zFile({ ...FileValidationPresets.audio, ...options }),
+    zFileBase({ ...FileValidationPresets.audio, ...options }),
   builder: (options: FileValidationOptions = {}) =>
     new FileSchemaBuilder(options),
-  requiredImage: (options: FileValidationOptions = {}) =>
-    zFile({ ...FileValidationPresets.image, ...options, required: true }),
-  requiredDocument: (options: FileValidationOptions = {}) =>
-    zFile({ ...FileValidationPresets.document, ...options, required: true }),
-  multipleImages: (options: FileValidationOptions = {}) =>
-    zFile({ ...FileValidationPresets.image, ...options, multiple: true }),
-  multipleDocuments: (options: FileValidationOptions = {}) =>
-    zFile({ ...FileValidationPresets.document, ...options, multiple: true }),
-};
+  chain: (options: FileValidationOptions = {}) => zFileChain(options),
+  required: (options: FileValidationOptions = {}) =>
+    zFileChain({ ...options, required: true }),
+  multiple: (options: FileValidationOptions = {}) =>
+    zFileChain({ ...options, multiple: true }),
+  optional: (options: FileValidationOptions = {}) =>
+    zFileChain({ ...options, required: false }),
+  maxSize: (size: number) => zFileChain({ maxSize: size }),
+  maxFiles: (count: number) => zFileChain({ maxFiles: count }),
+  mimeTypes: (types: string[]) => zFileChain({ allowedMimeTypes: types }),
+  extensions: (exts: string[]) => zFileChain({ allowedExtensions: exts }),
+});
+
+export const zFileSchema = zFile;
 
 export const createMulterStorage = (config: {
   store: 'memory' | 'disk';

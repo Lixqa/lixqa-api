@@ -178,6 +178,18 @@ export type Config<TAuth = any, TServices = undefined> = {
   };
 };
 
+export type UploadedFile = {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination?: string;
+  filename?: string;
+  path?: string;
+  buffer?: Buffer;
+};
+
 export interface Request<TAuth = any, TServices = undefined>
   extends ExpressRequest {
   startedAt: Date;
@@ -189,7 +201,8 @@ export interface Request<TAuth = any, TServices = undefined>
   _query: {
     [key: string]: string;
   };
-  _files?: any;
+  _files?: UploadedFile[];
+  _filesRaw?: UploadedFile[];
 }
 
 export type Response = ExpressResponse;

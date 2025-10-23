@@ -139,10 +139,8 @@ export class Server<TAuth = any, TServices = undefined> {
           const files = (req as any).files as any[] | undefined;
           // Store raw array for validation
           (req as any)._filesRaw = files ?? [];
-          // Shape for API access
-          (req as any)._files = fileOptions.multiple
-            ? ((files ?? []) as any[])
-            : ((files && files[0]) ?? undefined);
+          // Always expose as array on API
+          (req as any)._files = files ?? [];
 
           // Enforce field name convention based on schema option
           if (files && files.length > 0) {

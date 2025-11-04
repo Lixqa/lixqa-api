@@ -51,6 +51,8 @@ export class Server<TAuth = any, TServices = undefined> {
     this.routes = new RouteManager(this);
     this.schemas = new SchemaManager(this);
 
+    this.onError = setup.onError;
+
     this.app = express();
 
     this.app.use(

@@ -6,15 +6,18 @@ function createApp<TAuth = any, TServices = undefined>({
   authenticationMethod,
   routesBasePath,
   services,
+  onError,
 }: {
   authenticationMethod: (token: string) => Promise<TAuth> | TAuth;
   routesBasePath: string;
   services?: TServices;
+  onError?: (error: unknown) => void;
 }) {
   const server = new Server<TAuth, TServices>({
     authenticationMethod,
     routesBasePath,
     services,
+    onError,
   });
 
   const defineRoute = <V extends SchemaDefinition = object>(

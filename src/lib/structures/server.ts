@@ -36,11 +36,13 @@ export class Server<TAuth = any, TServices = undefined> {
   authenticationMethod: (token: string) => Promise<TAuth> | TAuth;
   routesBasePath: string;
   services: TServices;
+  onError?: (error: unknown) => void;
 
   constructor(setup: {
     authenticationMethod: (token: string) => Promise<TAuth> | TAuth;
     routesBasePath: string;
     services?: TServices;
+    onError?: (error: unknown) => void;
   }) {
     this.authenticationMethod = setup.authenticationMethod;
     this.routesBasePath = setup.routesBasePath;
@@ -221,7 +223,11 @@ export class Server<TAuth = any, TServices = undefined> {
         // The handler expects a ConditionalAPI type, but we can't infer the schema types at runtime
         // So we cast to the expected type while preserving the authentication typing
         // This allows the route handler to get the correct typing for schema-based properties
-        handler(api as any);
+        try {
+          await handler(api as any);
+        } catch (error) {
+          this.onError?.(error);
+        }
       } else {
         api.throw(StatusCodes.METHOD_NOT_ALLOWED);
       }

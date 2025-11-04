@@ -36,13 +36,25 @@ export class Server<TAuth = any, TServices = undefined> {
   authenticationMethod: (token: string) => Promise<TAuth> | TAuth;
   routesBasePath: string;
   services: TServices;
-  onError?: (error: unknown) => void;
+  onError?: ({
+    api,
+    error,
+  }: {
+    api: API<unknown, unknown, unknown, unknown, TAuth, TServices>;
+    error: unknown;
+  }) => void;
 
   constructor(setup: {
     authenticationMethod: (token: string) => Promise<TAuth> | TAuth;
     routesBasePath: string;
     services?: TServices;
-    onError?: (error: unknown) => void;
+    onError?: ({
+      api,
+      error,
+    }: {
+      api: API<unknown, unknown, unknown, unknown, TAuth, TServices>;
+      error: unknown;
+    }) => void;
   }) {
     this.authenticationMethod = setup.authenticationMethod;
     this.routesBasePath = setup.routesBasePath;

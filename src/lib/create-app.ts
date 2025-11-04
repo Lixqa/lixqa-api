@@ -1,6 +1,7 @@
 import { Server } from './structures/server';
 import { defineRoute as _defineRoute } from './define-route';
 import { RouteDefinition, SchemaDefinition } from './typings/types';
+import { API } from './structures/api';
 
 function createApp<TAuth = any, TServices = undefined>({
   authenticationMethod,
@@ -11,7 +12,13 @@ function createApp<TAuth = any, TServices = undefined>({
   authenticationMethod: (token: string) => Promise<TAuth> | TAuth;
   routesBasePath: string;
   services?: TServices;
-  onError?: (error: unknown) => void;
+  onError?: ({
+    api,
+    error,
+  }: {
+    api: API<unknown, unknown, unknown, unknown, TAuth, TServices>;
+    error: unknown;
+  }) => void;
 }) {
   const server = new Server<TAuth, TServices>({
     authenticationMethod,

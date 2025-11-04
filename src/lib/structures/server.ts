@@ -227,6 +227,7 @@ export class Server<TAuth = any, TServices = undefined> {
           await handler(api as any);
         } catch (error) {
           this.onError?.(error);
+          api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
         }
       } else {
         api.throw(StatusCodes.METHOD_NOT_ALLOWED);

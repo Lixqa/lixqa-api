@@ -240,7 +240,7 @@ export class Server<TAuth = any, TServices = undefined> {
         try {
           await handler(api as any);
         } catch (error) {
-          this.onError?.(error);
+          this.onError?.({ api, error });
           api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
         }
       } else {

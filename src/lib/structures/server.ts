@@ -240,6 +240,7 @@ export class Server<TAuth = any, TServices = undefined> {
         try {
           await handler(api as any);
         } catch (error) {
+          if (typeof error == 'string' && error == 'API_KILL') return;
           this.onError?.({ api, error });
           api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
         }

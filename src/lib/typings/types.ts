@@ -85,19 +85,9 @@ export type ConditionalAPI<
   M extends RouteMethod,
   TAuth = any,
   TServices = undefined,
-  TShared = undefined,
-> = (HasResponseSchema<V, M> extends true
-  ? APIDeprecatedSend<
-      GetSchemaType<V, M, 'body'>,
-      GetSchemaType<V, M, 'params'>,
-      GetSchemaType<V, M, 'query'>,
-      GetSchemaType<V, M, 'response'>,
-      TAuth,
-      TServices,
-      GetSchemaType<V, M, 'files'>
-    >
-  : Omit<
-      API<
+> =
+  HasResponseSchema<V, M> extends true
+    ? APIDeprecatedSend<
         GetSchemaType<V, M, 'body'>,
         GetSchemaType<V, M, 'params'>,
         GetSchemaType<V, M, 'query'>,
@@ -105,25 +95,26 @@ export type ConditionalAPI<
         TAuth,
         TServices,
         GetSchemaType<V, M, 'files'>
-      >,
-      'sendTyped'
-    >) &
-  (undefined extends TShared
-    ? TShared extends undefined
-      ? // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-        {}
-      : { shared: TShared }
-    : { shared: TShared });
+      >
+    : Omit<
+        API<
+          GetSchemaType<V, M, 'body'>,
+          GetSchemaType<V, M, 'params'>,
+          GetSchemaType<V, M, 'query'>,
+          GetSchemaType<V, M, 'response'>,
+          TAuth,
+          TServices,
+          GetSchemaType<V, M, 'files'>
+        >,
+        'sendTyped'
+      >;
 
 export type RouteDefinition<
   V extends SchemaDefinition = object,
   TAuth = any,
   TServices = undefined,
-  TShared = any,
 > = Partial<{
-  [M in RouteMethod]: (
-    api: ConditionalAPI<V, M, TAuth, TServices, TShared>,
-  ) => void | Promise<void>;
+  [M in RouteMethod]: (api: ConditionalAPI<V, M, TAuth, TServices>) => void;
 }> & {
   schema?: V;
   settings?: Partial<RouteSettings<TAuth, TServices>> & {
@@ -132,24 +123,7 @@ export type RouteDefinition<
   ratelimits?: Partial<RouteRatelimits> & {
     [M in RouteMethod]?: Partial<RouteRatelimits>;
   };
-  shared?: {
-    pre?: (api: SharedPreAPI<V, TAuth, TServices>) => any;
-  };
 };
-
-// API shape passed to shared.pre: keep everything except method-related fields
-export type SharedPreAPI<V, TAuth = any, TServices = undefined> = Omit<
-  API<
-    unknown,
-    GetSchemaType<V, 'GET', 'params'>,
-    unknown,
-    unknown,
-    TAuth,
-    TServices,
-    unknown
-  >,
-  'method' | 'body' | 'query' | 'files'
->;
 
 // Helper types to extract schema types more reliably
 type ExtractParams<V> = V extends { params: infer T }

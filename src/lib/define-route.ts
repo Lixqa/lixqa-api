@@ -1,32 +1,24 @@
-import {
-  RouteDefinition,
-  SchemaDefinition,
-  SharedPreAPI,
-} from './typings/types';
+import { RouteDefinition, SchemaDefinition } from './typings/types';
+
+// Helper type to extract the return type of shared.pre
+type InferShared<T> = T extends {
+  shared: { pre: (...args: any[]) => infer R };
+}
+  ? R extends Promise<infer U>
+    ? U
+    : R
+  : undefined;
 
 export function defineRoute<
   Schema extends SchemaDefinition = object,
   TAuth = any,
   TServices = undefined,
-  TShared = unknown,
->(
-  route: RouteDefinition<Schema, TAuth, TServices, TShared> & {
-    shared: {
-      pre: (
-        api: SharedPreAPI<Schema, TAuth, TServices>,
-      ) => TShared | Promise<TShared>;
-    };
-  },
-): RouteDefinition<Schema, TAuth, TServices, TShared>;
-
-export function defineRoute<
-  Schema extends SchemaDefinition = object,
-  TAuth = any,
-  TServices = undefined,
->(
-  route: RouteDefinition<Schema, TAuth, TServices, undefined>,
-): RouteDefinition<Schema, TAuth, TServices, undefined>;
-
-export function defineRoute(route: any): any {
-  return route;
+  Route extends RouteDefinition<
+    Schema,
+    TAuth,
+    TServices,
+    any
+  > = RouteDefinition<Schema, TAuth, TServices, any>,
+>(route: Route): RouteDefinition<Schema, TAuth, TServices, InferShared<Route>> {
+  return route as any;
 }

@@ -114,7 +114,7 @@ export type RouteDefinition<
   V extends SchemaDefinition = object,
   TAuth = any,
   TServices = undefined,
-  TShared = undefined,
+  TShared = any,
 > = Partial<{
   [M in RouteMethod]: (
     api: ConditionalAPI<V, M, TAuth, TServices, TShared>,
@@ -128,9 +128,7 @@ export type RouteDefinition<
     [M in RouteMethod]?: Partial<RouteRatelimits>;
   };
   shared?: {
-    pre?: (
-      api: SharedPreAPI<V, TAuth, TServices>,
-    ) => TShared | Promise<TShared>;
+    pre?: (api: SharedPreAPI<V, TAuth, TServices>) => any;
   };
 };
 

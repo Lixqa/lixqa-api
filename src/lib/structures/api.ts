@@ -25,7 +25,6 @@ export class API<
   authentication: TAuth;
   server: any;
   services: TServices;
-  shared: unknown;
 
   constructor(
     _req: ExpressRequest,
@@ -45,7 +44,6 @@ export class API<
     this.server = server;
     this.authentication = undefined as TAuth;
     this.services = server.services as TServices;
-    this.shared = undefined;
   }
 
   async authorize() {

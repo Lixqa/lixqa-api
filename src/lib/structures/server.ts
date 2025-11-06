@@ -233,18 +233,6 @@ export class Server<TAuth = any, TServices = undefined> {
         return api.throw(StatusCodes.BAD_REQUEST, { data: errors });
       }
 
-      const sharedPre = route.file.shared?.pre;
-      if (sharedPre) {
-        try {
-          const sharedResult = await sharedPre(api as any);
-          (api as any).shared = sharedResult;
-        } catch (error) {
-          if (typeof error == 'string' && error == 'API_KILL') return;
-          this.onError?.({ api, error });
-          api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
-        }
-      }
-
       if (handler) {
         // The handler expects a ConditionalAPI type, but we can't infer the schema types at runtime
         // So we cast to the expected type while preserving the authentication typing

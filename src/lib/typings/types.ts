@@ -53,10 +53,6 @@ type HasResponseSchema<V, M extends RouteMethod> = V extends {
   : false;
 
 // API type with deprecated send method (when sendTyped is available)
-type SharedProperty<TShared> = { shared?: TShared };
-
-type MaybePromise<T> = T | Promise<T>;
-
 type APIDeprecatedSend<
   TBody = unknown,
   TParams = unknown,
@@ -65,38 +61,23 @@ type APIDeprecatedSend<
   TAuth = any,
   TServices = undefined,
   TFiles = unknown,
-  TShared = unknown,
 > = Omit<
   API<TBody, TParams, TQuery, TResponse, TAuth, TServices, TFiles>,
-  'send' | 'shared'
-> &
-  SharedProperty<TShared> & {
-    /**
-     * @deprecated Use sendTyped instead for type-safe responses when a response schema is defined
-     */
-    send(
-      data?: any,
-      options?: {
-        error?: boolean;
-        status?: number;
-        code?: string;
-        message?: string;
-      },
-    ): never;
-  };
-
-export type SharedAPI<V, TAuth = any, TServices = undefined> = Omit<
-  API<
-    unknown,
-    GetSchemaType<V, 'GET', 'params'>,
-    unknown,
-    unknown,
-    TAuth,
-    TServices,
-    unknown
-  >,
-  'body' | 'query' | 'files' | 'sendTyped' | 'shared'
->;
+  'send'
+> & {
+  /**
+   * @deprecated Use sendTyped instead for type-safe responses when a response schema is defined
+   */
+  send(
+    data?: any,
+    options?: {
+      error?: boolean;
+      status?: number;
+      code?: string;
+      message?: string;
+    },
+  ): never;
+};
 
 // Conditional API type that includes sendTyped only when response schema exists
 export type ConditionalAPI<
@@ -104,7 +85,6 @@ export type ConditionalAPI<
   M extends RouteMethod,
   TAuth = any,
   TServices = undefined,
-  TShared = unknown,
 > =
   HasResponseSchema<V, M> extends true
     ? APIDeprecatedSend<
@@ -114,8 +94,7 @@ export type ConditionalAPI<
         GetSchemaType<V, M, 'response'>,
         TAuth,
         TServices,
-        GetSchemaType<V, M, 'files'>,
-        TShared
+        GetSchemaType<V, M, 'files'>
       >
     : Omit<
         API<
@@ -127,30 +106,16 @@ export type ConditionalAPI<
           TServices,
           GetSchemaType<V, M, 'files'>
         >,
-        'sendTyped' | 'shared'
-      > &
-        SharedProperty<TShared>;
-
-export type RouteShared<
-  V extends SchemaDefinition,
-  TAuth,
-  TServices,
-  TShared,
-> = {
-  pre?: (api: SharedAPI<V, TAuth, TServices>) => MaybePromise<TShared>;
-};
+        'sendTyped'
+      >;
 
 export type RouteDefinition<
   V extends SchemaDefinition = object,
   TAuth = any,
   TServices = undefined,
-  TShared = unknown,
 > = Partial<{
-  [M in RouteMethod]: (
-    api: ConditionalAPI<V, M, TAuth, TServices, TShared>,
-  ) => void | Promise<void>;
+  [M in RouteMethod]: (api: ConditionalAPI<V, M, TAuth, TServices>) => void;
 }> & {
-  shared?: RouteShared<V, TAuth, TServices, TShared>;
   schema?: V;
   settings?: Partial<RouteSettings<TAuth, TServices>> & {
     [M in RouteMethod]?: Partial<RouteSettings<TAuth, TServices>>;

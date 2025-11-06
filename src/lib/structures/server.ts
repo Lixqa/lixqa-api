@@ -238,6 +238,14 @@ export class Server<TAuth = any, TServices = undefined> {
         // So we cast to the expected type while preserving the authentication typing
         // This allows the route handler to get the correct typing for schema-based properties
         try {
+          // Execute shared pre hook if present and attach its result to api
+          const sharedPre = (route.file as any)?.shared?.pre;
+          if (typeof sharedPre === 'function') {
+            const preResult = sharedPre(api as any);
+            (api as any).shared =
+              preResult instanceof Promise ? await preResult : preResult;
+          }
+
           await handler(api as any);
         } catch (error) {
           if (typeof error == 'string' && error == 'API_KILL') return;

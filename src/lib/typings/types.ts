@@ -85,9 +85,19 @@ export type ConditionalAPI<
   M extends RouteMethod,
   TAuth = any,
   TServices = undefined,
-> =
-  HasResponseSchema<V, M> extends true
-    ? APIDeprecatedSend<
+  TShared = undefined,
+> = (HasResponseSchema<V, M> extends true
+  ? APIDeprecatedSend<
+      GetSchemaType<V, M, 'body'>,
+      GetSchemaType<V, M, 'params'>,
+      GetSchemaType<V, M, 'query'>,
+      GetSchemaType<V, M, 'response'>,
+      TAuth,
+      TServices,
+      GetSchemaType<V, M, 'files'>
+    >
+  : Omit<
+      API<
         GetSchemaType<V, M, 'body'>,
         GetSchemaType<V, M, 'params'>,
         GetSchemaType<V, M, 'query'>,
@@ -95,26 +105,20 @@ export type ConditionalAPI<
         TAuth,
         TServices,
         GetSchemaType<V, M, 'files'>
-      >
-    : Omit<
-        API<
-          GetSchemaType<V, M, 'body'>,
-          GetSchemaType<V, M, 'params'>,
-          GetSchemaType<V, M, 'query'>,
-          GetSchemaType<V, M, 'response'>,
-          TAuth,
-          TServices,
-          GetSchemaType<V, M, 'files'>
-        >,
-        'sendTyped'
-      >;
+      >,
+      'sendTyped'
+    >) &
+  ([TShared] extends [undefined] ? object : { shared: TShared });
 
 export type RouteDefinition<
   V extends SchemaDefinition = object,
   TAuth = any,
   TServices = undefined,
+  TShared = undefined,
 > = Partial<{
-  [M in RouteMethod]: (api: ConditionalAPI<V, M, TAuth, TServices>) => void;
+  [M in RouteMethod]: (
+    api: ConditionalAPI<V, M, TAuth, TServices, TShared>,
+  ) => void | Promise<void>;
 }> & {
   schema?: V;
   settings?: Partial<RouteSettings<TAuth, TServices>> & {
@@ -122,6 +126,11 @@ export type RouteDefinition<
   };
   ratelimits?: Partial<RouteRatelimits> & {
     [M in RouteMethod]?: Partial<RouteRatelimits>;
+  };
+  shared?: {
+    pre?: (
+      api: API<unknown, unknown, unknown, unknown, TAuth, TServices>,
+    ) => TShared | Promise<TShared>;
   };
 };
 

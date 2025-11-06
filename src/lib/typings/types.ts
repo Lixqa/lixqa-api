@@ -108,7 +108,12 @@ export type ConditionalAPI<
       >,
       'sendTyped'
     >) &
-  ([TShared] extends [undefined] ? object : { shared: TShared });
+  (undefined extends TShared
+    ? TShared extends undefined
+      ? // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+        {}
+      : { shared: TShared }
+    : { shared: TShared });
 
 export type RouteDefinition<
   V extends SchemaDefinition = object,

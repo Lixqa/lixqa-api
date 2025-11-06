@@ -128,10 +128,13 @@ export type RouteDefinition<
     [M in RouteMethod]?: Partial<RouteRatelimits>;
   };
   shared?: {
-    pre?: (
-      api: API<unknown, unknown, unknown, unknown, TAuth, TServices>,
-    ) => TShared | Promise<TShared>;
+    pre?: (api: SharedPreAPI<V>) => TShared | Promise<TShared>;
   };
+};
+
+// API shape passed to shared.pre: only expose params with proper typing
+export type SharedPreAPI<V> = {
+  params: GetSchemaType<V, 'GET', 'params'>;
 };
 
 // Helper types to extract schema types more reliably

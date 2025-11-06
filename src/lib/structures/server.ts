@@ -10,7 +10,6 @@ import { Logger } from '../helpers/logger';
 import { StatusCodes } from 'http-status-codes';
 import { RouteManager } from '../managers/routes';
 import { SchemaManager } from '../managers/schemas';
-import { ConnectionManager } from '../managers/connections';
 import msgpack from 'msgpack5';
 import getRawBody from 'raw-body';
 import requestIp from 'request-ip';
@@ -27,7 +26,6 @@ export class Server<TAuth = any, TServices = undefined> {
   private app: express.Application;
   routes: RouteManager;
   schemas: SchemaManager;
-  connections = new ConnectionManager();
   ratelimits = new RatelimitManager();
   config: Config<TAuth, TServices> = undefined as unknown as Config<
     TAuth,
@@ -110,7 +108,6 @@ export class Server<TAuth = any, TServices = undefined> {
         req,
         res,
         resolved?.route,
-        this.connections,
         this,
       );
 
@@ -259,8 +256,6 @@ export class Server<TAuth = any, TServices = undefined> {
 
   async start() {
     Logger.starting();
-
-    await this.connections.init();
 
     return new Promise<void>((resolve) => {
       this.app.listen(this.config.port, () => {

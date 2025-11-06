@@ -6,7 +6,6 @@ import type { Config, Request, Response, RouteMethod } from '../typings/types';
 import { Route } from './route';
 import z from 'zod';
 import { getReasonPhrase, StatusCodes } from 'http-status-codes';
-import { ConnectionManager } from '../managers/connections';
 import { msgpackInstance } from './server';
 
 export class API<
@@ -21,7 +20,6 @@ export class API<
   private req: Request;
   private res: Response;
   route: Route | undefined;
-  connections: ConnectionManager;
   authentication: TAuth;
   server: any;
   services: TServices;
@@ -30,7 +28,6 @@ export class API<
     _req: ExpressRequest,
     res: ExpressResponse,
     route: Route | undefined,
-    connections: ConnectionManager,
     server: any,
   ) {
     const req = _req as Request;
@@ -40,7 +37,6 @@ export class API<
     this.res = res;
 
     this.route = route;
-    this.connections = connections;
     this.server = server;
     this.authentication = undefined as TAuth;
     this.services = server.services as TServices;

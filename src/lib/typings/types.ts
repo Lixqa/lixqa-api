@@ -144,7 +144,7 @@ export type RouteDefinition<
   V extends SchemaDefinition = object,
   TAuth = any,
   TServices = undefined,
-  TShared = undefined,
+  TShared = unknown,
 > = Partial<{
   [M in RouteMethod]: (
     api: ConditionalAPI<V, M, TAuth, TServices, TShared>,

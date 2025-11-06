@@ -1,30 +1,22 @@
-import {
-  RouteDefinition,
-  RouteShared,
-  SchemaDefinition,
-} from './typings/types';
+import { RouteDefinition, SchemaDefinition } from './typings/types';
+
+type SharedResult<TRoute> = TRoute extends {
+  shared?: { pre?: (api: any) => infer TResult };
+}
+  ? Awaited<TResult>
+  : undefined;
 
 export function defineRoute<
   Schema extends SchemaDefinition = object,
   TAuth = any,
   TServices = undefined,
-  TSharedConfig extends
-    | RouteShared<Schema, TAuth, TServices, any>
-    | undefined = RouteShared<Schema, TAuth, TServices, undefined> | undefined,
-  TShared = TSharedConfig extends RouteShared<
+  TRoute extends RouteDefinition<
     Schema,
     TAuth,
     TServices,
-    infer TResult
-  >
-    ? Awaited<TResult>
-    : undefined,
->(
-  route: RouteDefinition<Schema, TAuth, TServices, TShared> & {
-    shared?: TSharedConfig;
-  },
-): RouteDefinition<Schema, TAuth, TServices, TShared> & {
-  shared?: TSharedConfig;
-} {
-  return route;
+    any
+  > = RouteDefinition<Schema, TAuth, TServices, unknown>,
+  TShared = SharedResult<TRoute>,
+>(route: TRoute): RouteDefinition<Schema, TAuth, TServices, TShared> & TRoute {
+  return route as RouteDefinition<Schema, TAuth, TServices, TShared> & TRoute;
 }

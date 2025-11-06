@@ -27,9 +27,17 @@ function createApp<TAuth = any, TServices = undefined>({
     onError,
   });
 
-  const defineRoute = <V extends SchemaDefinition = object>(
-    route: RouteDefinition<V, TAuth, TServices>,
-  ) => _defineRoute<V, TAuth, TServices>(route);
+  const defineRoute = <
+    V extends SchemaDefinition = object,
+    TRoute extends RouteDefinition<V, TAuth, TServices, any> = RouteDefinition<
+      V,
+      TAuth,
+      TServices,
+      unknown
+    >,
+  >(
+    route: TRoute,
+  ) => _defineRoute<V, TAuth, TServices, TRoute>(route);
 
   return {
     server,

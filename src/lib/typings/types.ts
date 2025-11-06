@@ -53,9 +53,11 @@ type HasResponseSchema<V, M extends RouteMethod> = V extends {
   : false;
 
 // API type with deprecated send method (when sendTyped is available)
-type SharedProperty<TShared> = TShared extends undefined
-  ? { shared?: undefined }
+type SharedProperty<TShared> = undefined extends TShared
+  ? { shared?: Exclude<TShared, undefined> }
   : { shared: TShared };
+
+type MaybePromise<T> = T | Promise<T>;
 
 type APIDeprecatedSend<
   TBody = unknown,
@@ -131,21 +133,33 @@ export type ConditionalAPI<
       > &
         SharedProperty<TShared>;
 
-type RouteShared<V extends SchemaDefinition, TAuth, TServices, TShared> = {
-  pre?: (api: SharedAPI<V, TAuth, TServices>) => TShared | Promise<TShared>;
+export type RouteShared<
+  V extends SchemaDefinition,
+  TAuth,
+  TServices,
+  TShared,
+> = {
+  pre?: (api: SharedAPI<V, TAuth, TServices>) => MaybePromise<TShared>;
 };
+
+type SharedResult<TSharedConfig> =
+  TSharedConfig extends RouteShared<any, any, any, infer TShared>
+    ? TShared
+    : undefined;
 
 export type RouteDefinition<
   V extends SchemaDefinition = object,
   TAuth = any,
   TServices = undefined,
-  TShared = undefined,
+  TSharedConfig extends
+    | RouteShared<V, TAuth, TServices, any>
+    | undefined = RouteShared<V, TAuth, TServices, undefined>,
 > = Partial<{
   [M in RouteMethod]: (
-    api: ConditionalAPI<V, M, TAuth, TServices, TShared>,
+    api: ConditionalAPI<V, M, TAuth, TServices, SharedResult<TSharedConfig>>,
   ) => void | Promise<void>;
 }> & {
-  shared?: RouteShared<V, TAuth, TServices, TShared>;
+  shared?: TSharedConfig;
   schema?: V;
   settings?: Partial<RouteSettings<TAuth, TServices>> & {
     [M in RouteMethod]?: Partial<RouteSettings<TAuth, TServices>>;

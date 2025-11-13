@@ -49,18 +49,9 @@ export type ConditionalAPI<
   M extends RouteMethod,
   TAuth = any,
   TServices = undefined,
-> = HasResponseSchema<V, M> extends true
-  ? APIDeprecatedSend<
-      GetSchemaType<V, M, 'body'>,
-      GetSchemaType<V, M, 'params'>,
-      GetSchemaType<V, M, 'query'>,
-      GetSchemaType<V, M, 'response'>,
-      TAuth,
-      TServices,
-      GetSchemaType<V, M, 'files'>
-    >
-  : Omit<
-      API<
+> =
+  HasResponseSchema<V, M> extends true
+    ? APIDeprecatedSend<
         GetSchemaType<V, M, 'body'>,
         GetSchemaType<V, M, 'params'>,
         GetSchemaType<V, M, 'query'>,
@@ -68,7 +59,16 @@ export type ConditionalAPI<
         TAuth,
         TServices,
         GetSchemaType<V, M, 'files'>
-      >,
-      'sendTyped'
-    >;
-
+      >
+    : Omit<
+        API<
+          GetSchemaType<V, M, 'body'>,
+          GetSchemaType<V, M, 'params'>,
+          GetSchemaType<V, M, 'query'>,
+          GetSchemaType<V, M, 'response'>,
+          TAuth,
+          TServices,
+          GetSchemaType<V, M, 'files'>
+        >,
+        'sendTyped'
+      >;

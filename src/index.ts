@@ -1,4 +1,4 @@
-export { Config } from './lib/typings/types';
+export type { Config } from './lib/typings';
 export { defineSchema } from './lib/define-schema';
 export { defineConfig } from './lib/define-config';
 export { createApp } from './lib/create-app';

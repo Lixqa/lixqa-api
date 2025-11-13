@@ -1,6 +1,6 @@
 import { Server } from './structures/server';
 import { defineRoute as _defineRoute } from './define-route';
-import { RouteDefinition, SchemaDefinition } from './typings/types';
+import type { RouteDefinition, SchemaDefinition } from './typings';
 import { API } from './structures/api';
 
 // Helper type to extract the return type from authenticationMethod

@@ -1,4 +1,4 @@
-import { RouteDefinition, SchemaDefinition } from './typings/types';
+import type { RouteDefinition, SchemaDefinition } from './typings';
 
 export function defineRoute<
   Schema extends SchemaDefinition = object,

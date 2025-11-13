@@ -2,7 +2,7 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import type { Config, Request, Response, RouteMethod } from '../typings/types';
+import type { Config, Request, Response, RouteMethod } from '../typings';
 import { Route } from './route';
 import z from 'zod';
 import { getReasonPhrase, StatusCodes } from 'http-status-codes';

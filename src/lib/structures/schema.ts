@@ -1,5 +1,5 @@
 import { filePathToRoutePath } from '../helpers/parser';
-import { SchemaDefinition } from '../typings/types';
+import type { SchemaDefinition } from '../typings';
 
 export class Schema {
   filePath: string;

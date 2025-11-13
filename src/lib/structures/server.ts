@@ -5,7 +5,7 @@ import express, {
 } from 'express';
 import { API } from './api';
 import cors from 'cors';
-import { Config, Request, Response, RouteMethod } from '../typings/types';
+import type { Config, Request, Response, RouteMethod } from '../typings';
 import { Logger } from '../helpers/logger';
 import { StatusCodes } from 'http-status-codes';
 import { RouteManager } from '../managers/routes';

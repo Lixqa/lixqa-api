@@ -1,5 +1,5 @@
 import { filePathToRoutePath } from '../helpers/parser';
-import { RouteDefinition, RouteMethod } from '../typings/types';
+import type { RouteDefinition, RouteMethod } from '../typings';
 import { Schema } from './schema';
 
 export class Route {

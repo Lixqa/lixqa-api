@@ -116,7 +116,7 @@ export class Server<TAuth = any, TServices = undefined> {
 
       const resolved = this.routes.resolveUrl(req.path);
 
-      const api = new API<any, any, any, any, TAuth, TServices>(
+      const api = new API<unknown, unknown, unknown, unknown, TAuth, TServices>(
         req,
         res,
         resolved?.route,

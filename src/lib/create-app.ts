@@ -3,19 +3,34 @@ import { defineRoute as _defineRoute } from './define-route';
 import { RouteDefinition, SchemaDefinition } from './typings/types';
 import { API } from './structures/api';
 
-function createApp<TAuth = any, TServices = undefined>({
+// Helper type to extract the return type from authenticationMethod
+type ExtractAuthType<T> = T extends ({
+  token,
+  server,
+}: {
+  token: string;
+  server: Server<unknown, unknown>;
+}) => infer R
+  ? Awaited<R>
+  : never;
+
+function createApp<
+  TAuthMethod extends ({
+    token,
+    server,
+  }: {
+    token: string;
+    server: Server<unknown, unknown>;
+  }) => Promise<unknown> | unknown,
+  TAuth = ExtractAuthType<TAuthMethod>,
+  TServices = undefined,
+>({
   authenticationMethod,
   routesBasePath,
   services,
   onError,
 }: {
-  authenticationMethod: ({
-    token,
-    server,
-  }: {
-    token: string;
-    server: Server<TAuth, TServices>;
-  }) => Promise<TAuth> | TAuth;
+  authenticationMethod: TAuthMethod;
   routesBasePath: string;
   services?: TServices;
   onError?: ({
@@ -27,7 +42,13 @@ function createApp<TAuth = any, TServices = undefined>({
   }) => void;
 }) {
   const server = new Server<TAuth, TServices>({
-    authenticationMethod,
+    authenticationMethod: authenticationMethod as ({
+      token,
+      server,
+    }: {
+      token: string;
+      server: Server<TAuth, TServices>;
+    }) => Promise<TAuth> | TAuth,
     routesBasePath,
     services,
     onError,

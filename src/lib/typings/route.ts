@@ -1,4 +1,3 @@
-import { API } from '../structures/api';
 import type { RouteMethod } from './common';
 import type { SchemaDefinition } from './schema';
 import type { ConditionalAPI } from './api';
@@ -22,4 +21,3 @@ export type RouteDefinition<
     [M in RouteMethod]?: Partial<RouteRatelimits>;
   };
 };
-

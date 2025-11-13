@@ -30,7 +30,7 @@ npm install @lixqa-api/server
 import { createApp } from '@lixqa-api/server';
 
 // Define your authentication method
-const mockCheckUser = (token: string) => {
+const mockCheckUser = ({ token }) => {
   if (token === '123') {
     return {
       id: 1,

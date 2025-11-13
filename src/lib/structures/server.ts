@@ -31,7 +31,13 @@ export class Server<TAuth = any, TServices = undefined> {
     TAuth,
     TServices
   >;
-  authenticationMethod: (token: string) => Promise<TAuth> | TAuth;
+  authenticationMethod: ({
+    token,
+    server,
+  }: {
+    token: string;
+    server: Server<TAuth, TServices>;
+  }) => Promise<TAuth> | TAuth;
   routesBasePath: string;
   services: TServices;
   onError?: ({
@@ -43,7 +49,13 @@ export class Server<TAuth = any, TServices = undefined> {
   }) => void;
 
   constructor(setup: {
-    authenticationMethod: (token: string) => Promise<TAuth> | TAuth;
+    authenticationMethod: ({
+      token,
+      server,
+    }: {
+      token: string;
+      server: Server<TAuth, TServices>;
+    }) => Promise<TAuth> | TAuth;
     routesBasePath: string;
     services?: TServices;
     onError?: ({

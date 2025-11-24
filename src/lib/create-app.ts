@@ -1,6 +1,7 @@
 import { Server } from './structures/server';
 import { defineRoute as _defineRoute } from './define-route';
-import type { RouteDefinition, SchemaDefinition } from './typings';
+import { defineMiddleware as _defineMiddleware } from './define-middleware';
+import type { RouteDefinition, SchemaDefinition, MiddlewareDefinition } from './typings';
 import { API } from './structures/api';
 
 // Helper type to extract the return type from authenticationMethod
@@ -58,9 +59,14 @@ function createApp<
     route: RouteDefinition<V, TAuth, TServices>,
   ) => _defineRoute<V, TAuth, TServices>(route);
 
+  const defineMiddleware = (
+    middleware: MiddlewareDefinition<TAuth, TServices>,
+  ) => _defineMiddleware<TAuth, TServices>(middleware);
+
   return {
     server,
     defineRoute,
+    defineMiddleware,
   };
 }
 

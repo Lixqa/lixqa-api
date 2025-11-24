@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { Route } from '../structures/route';
 import { Schema } from '../structures/schema';
+import { Middleware } from '../structures/middleware';
 
 export class Logger {
   static routeLoaded(route: Route) {
@@ -23,6 +24,18 @@ export class Logger {
         ']',
         'Loaded Schema',
         chalk.cyan(schema.path),
+      ),
+    );
+  }
+
+  static middlewareLoaded(middleware: Middleware) {
+    console.info(
+      chalk.gray(
+        '[',
+        chalk.green('+'),
+        ']',
+        'Loaded Middleware',
+        chalk.cyan(middleware.filePath),
       ),
     );
   }

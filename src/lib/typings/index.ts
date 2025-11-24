@@ -24,3 +24,6 @@ export type { Config } from './config';
 // Request/Response types
 export type { Request, Response } from './request';
 
+// Middleware types
+export type { MiddlewareDefinition, MiddlewareFunction } from './middleware';
+

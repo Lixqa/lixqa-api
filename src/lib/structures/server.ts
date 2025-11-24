@@ -10,6 +10,7 @@ import { Logger } from '../helpers/logger';
 import { StatusCodes } from 'http-status-codes';
 import { RouteManager } from '../managers/routes';
 import { SchemaManager } from '../managers/schemas';
+import { MiddlewareManager } from '../managers/middlewares';
 import msgpack from 'msgpack5';
 import getRawBody from 'raw-body';
 import requestIp from 'request-ip';
@@ -26,6 +27,7 @@ export class Server<TAuth = any, TServices = undefined> {
   private app: express.Application;
   routes: RouteManager;
   schemas: SchemaManager;
+  middlewares: MiddlewareManager;
   ratelimits = new RatelimitManager();
   config: Config<TAuth, TServices> = undefined as unknown as Config<
     TAuth,
@@ -72,6 +74,7 @@ export class Server<TAuth = any, TServices = undefined> {
 
     this.routes = new RouteManager(this);
     this.schemas = new SchemaManager(this);
+    this.middlewares = new MiddlewareManager(this);
 
     this.onError = setup.onError;
 
@@ -110,7 +113,7 @@ export class Server<TAuth = any, TServices = undefined> {
 
     // multipart/form-data support for both forms and file uploads will be applied after route resolution
 
-    this.app.use((_req, _res, next) => {
+    this.app.use(async (_req, _res, next) => {
       const req = _req as Request<TAuth, TServices>;
       const res = _res as Response;
 
@@ -123,9 +126,19 @@ export class Server<TAuth = any, TServices = undefined> {
         this,
       );
 
-      if (!resolved) return api.throw(StatusCodes.NOT_FOUND);
-
       req.api = api;
+
+      if (!resolved) {
+        // Execute middleware even for 404s
+        try {
+          await this.middlewares.executeAll(api);
+        } catch (error) {
+          if (typeof error == 'string' && error == 'API_KILL') return;
+          this.onError?.({ api, error });
+          api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
+        }
+        return api.throw(StatusCodes.NOT_FOUND);
+      }
 
       // If multipart, parse with multer now, using effective config (global or per-route)
       if (req.is('multipart/form-data')) {
@@ -152,7 +165,7 @@ export class Server<TAuth = any, TServices = undefined> {
         const storage = createMulterStorage(effective);
         const upload = multer({ storage }).any();
 
-        upload(_req as any, _res as any, (err: any) => {
+        upload(_req as any, _res as any, async (err: any) => {
           if (err) {
             return api.throw(StatusCodes.BAD_REQUEST, {
               data: err?.message || 'Invalid multipart/form-data',
@@ -181,6 +194,15 @@ export class Server<TAuth = any, TServices = undefined> {
             }
           }
 
+          // Execute middleware after multipart parsing
+          try {
+            await this.middlewares.executeAll(api);
+          } catch (error) {
+            if (typeof error == 'string' && error == 'API_KILL') return;
+            this.onError?.({ api, error });
+            api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
+          }
+
           // Do not enforce required here; allow Zod schema to generate structured errors
           next();
         });
@@ -190,6 +212,16 @@ export class Server<TAuth = any, TServices = undefined> {
       req._body = req.body;
       req._params = resolved.params as any;
       req._query = req.query as any;
+
+      // Execute middleware for non-multipart requests
+      try {
+        await this.middlewares.executeAll(api);
+      } catch (error) {
+        if (typeof error == 'string' && error == 'API_KILL') return;
+        this.onError?.({ api, error });
+        api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
+      }
+
       next();
     });
 
@@ -263,6 +295,7 @@ export class Server<TAuth = any, TServices = undefined> {
     this.initConfig();
     this.routes.init();
     this.schemas.init();
+    this.middlewares.init();
     this.routes.mergeSchemas(this.schemas.items);
   }
 

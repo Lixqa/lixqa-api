@@ -1,6 +1,7 @@
 export function filePathToRoutePath(filePath: string) {
   // Convert file path to route pattern
   // e.g., "src/routes/users/[userId]/_.ts" -> "/users/:userId"
+  // e.g., "src/routes/(group)/data/_.ts" -> "/data" (group folders are ignored)
 
   // Remove the base routes directory and file extension
   let routePath = filePath
@@ -10,6 +11,13 @@ export function filePathToRoutePath(filePath: string) {
 
   // Convert backslashes to forward slashes (Windows compatibility)
   routePath = routePath.replace(/\\/g, '/');
+
+  // Remove route groups (folders wrapped in parentheses)
+  // e.g., "(group)/data" -> "data", "(admin)/users/(nested)" -> "users"
+  routePath = routePath
+    .split('/')
+    .filter((segment) => !segment.match(/^\([^)]+\)$/))
+    .join('/');
 
   // Handle index routes (_.ts files)
   if (routePath === '_') {

@@ -128,17 +128,7 @@ export class Server<TAuth = any, TServices = undefined> {
 
       req.api = api;
 
-      if (!resolved) {
-        // Execute middleware even for 404s
-        try {
-          await this.middlewares.executeAll(api);
-        } catch (error) {
-          if (typeof error == 'string' && error == 'API_KILL') return;
-          this.onError?.({ api, error });
-          api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
-        }
-        return api.throw(StatusCodes.NOT_FOUND);
-      }
+      if (!resolved) return api.throw(StatusCodes.NOT_FOUND);
 
       // If multipart, parse with multer now, using effective config (global or per-route)
       if (req.is('multipart/form-data')) {
@@ -194,15 +184,6 @@ export class Server<TAuth = any, TServices = undefined> {
             }
           }
 
-          // Execute middleware after multipart parsing
-          try {
-            await this.middlewares.executeAll(api);
-          } catch (error) {
-            if (typeof error == 'string' && error == 'API_KILL') return;
-            this.onError?.({ api, error });
-            api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
-          }
-
           // Do not enforce required here; allow Zod schema to generate structured errors
           next();
         });
@@ -212,15 +193,6 @@ export class Server<TAuth = any, TServices = undefined> {
       req._body = req.body;
       req._params = resolved.params as any;
       req._query = req.query as any;
-
-      // Execute middleware for non-multipart requests
-      try {
-        await this.middlewares.executeAll(api);
-      } catch (error) {
-        if (typeof error == 'string' && error == 'API_KILL') return;
-        this.onError?.({ api, error });
-        api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
-      }
 
       next();
     });
@@ -265,6 +237,15 @@ export class Server<TAuth = any, TServices = undefined> {
       this.ratelimits.increase(api);
 
       await api.authorize();
+
+      // Execute middleware after authentication but before schema validation
+      try {
+        await this.middlewares.executeAll(api);
+      } catch (error) {
+        if (typeof error == 'string' && error == 'API_KILL') return;
+        this.onError?.({ api, error });
+        api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
+      }
 
       const errors = api.validateSchema();
 

@@ -67,6 +67,18 @@ export class Server<TAuth = any, TServices = undefined> {
       api: API<unknown, unknown, unknown, unknown, TAuth, TServices>;
       error: unknown;
     }) => void;
+    cors?: {
+      origin?:
+        | string
+        | string[]
+        | ((
+            origin: string | undefined,
+            callback: (err: Error | null, allow?: boolean) => void,
+          ) => void);
+      methods?: string | string[];
+      headers?: string | string[];
+      extendHeaders?: string | string[];
+    };
   }) {
     this.authenticationMethod = setup.authenticationMethod;
     this.routesBasePath = setup.routesBasePath;
@@ -80,11 +92,29 @@ export class Server<TAuth = any, TServices = undefined> {
 
     this.app = express();
 
+    // Default CORS values
+    const defaultOrigin = '*';
+    const defaultMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+    const defaultHeaders = ['Content-Type', 'Authorization'];
+
+    // Build headers array: use headers if provided, otherwise merge defaultHeaders with extendHeaders
+    let allowedHeaders: string[] = defaultHeaders;
+    if (setup.cors?.headers) {
+      allowedHeaders = Array.isArray(setup.cors.headers)
+        ? setup.cors.headers
+        : [setup.cors.headers];
+    } else if (setup.cors?.extendHeaders) {
+      const extendHeadersArray = Array.isArray(setup.cors.extendHeaders)
+        ? setup.cors.extendHeaders
+        : [setup.cors.extendHeaders];
+      allowedHeaders = [...defaultHeaders, ...extendHeadersArray];
+    }
+
     this.app.use(
       cors({
-        origin: '*',
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        origin: setup.cors?.origin ?? defaultOrigin,
+        methods: setup.cors?.methods ?? defaultMethods,
+        allowedHeaders,
       }),
     );
 

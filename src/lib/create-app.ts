@@ -1,7 +1,11 @@
 import { Server } from './structures/server';
 import { defineRoute as _defineRoute } from './define-route';
 import { defineMiddleware as _defineMiddleware } from './define-middleware';
-import type { RouteDefinition, SchemaDefinition, MiddlewareDefinition } from './typings';
+import type {
+  RouteDefinition,
+  SchemaDefinition,
+  MiddlewareDefinition,
+} from './typings';
 import { API } from './structures/api';
 
 // Helper type to extract the return type from authenticationMethod
@@ -30,6 +34,7 @@ function createApp<
   routesBasePath,
   services,
   onError,
+  cors,
 }: {
   authenticationMethod: TAuthMethod;
   routesBasePath: string;
@@ -41,6 +46,18 @@ function createApp<
     api: API<unknown, unknown, unknown, unknown, TAuth, TServices>;
     error: unknown;
   }) => void;
+  cors?: {
+    origin?:
+      | string
+      | string[]
+      | ((
+          origin: string | undefined,
+          callback: (err: Error | null, allow?: boolean) => void,
+        ) => void);
+    methods?: string | string[];
+    headers?: string | string[];
+    extendHeaders?: string | string[];
+  };
 }) {
   const server = new Server<TAuth, TServices>({
     authenticationMethod: authenticationMethod as ({
@@ -53,6 +70,7 @@ function createApp<
     routesBasePath,
     services,
     onError,
+    cors,
   });
 
   const defineRoute = <V extends SchemaDefinition = object>(

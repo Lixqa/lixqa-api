@@ -6,7 +6,7 @@ import type { Config, Request, Response, RouteMethod } from '../typings';
 import { Route } from './route';
 import z from 'zod';
 import { getReasonPhrase, StatusCodes } from 'http-status-codes';
-import { msgpackInstance } from './server';
+import { msgpackInstance, Server } from './server';
 
 export class API<
   TBody = unknown,
@@ -21,14 +21,14 @@ export class API<
   private res: Response;
   route: Route | undefined;
   authentication: TAuth;
-  server: any;
+  server: Server<TAuth, TServices>;
   services: TServices;
 
   constructor(
     _req: ExpressRequest,
     res: ExpressResponse,
     route: Route | undefined,
-    server: any,
+    server: Server<TAuth, TServices>,
   ) {
     const req = _req as Request;
     req.startedAt = new Date();

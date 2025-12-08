@@ -2,10 +2,12 @@ export function filePathToRoutePath(filePath: string) {
   // Convert file path to route pattern
   // e.g., "src/routes/users/[userId]/_.ts" -> "/users/:userId"
   // e.g., "src/routes/(group)/data/_.ts" -> "/data" (group folders are ignored)
+  // e.g., "src/internal-routes/__client__.ts" -> "/__client__"
 
-  // Remove the base routes directory and file extension
+  // Remove the base routes directory or internal-routes directory and file extension
   let routePath = filePath
     .replace(/^.*[/\\]routes[/\\]/, '') // Remove everything up to /routes/
+    .replace(/^.*[/\\]internal-routes[/\\]/, '') // Remove everything up to /internal-routes/
     .replace(/\.schema.ts$/, '')
     .replace(/\.ts$/, ''); // Remove .ts extension
 

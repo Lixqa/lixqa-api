@@ -282,6 +282,7 @@ export class Server<TAuth = any, TServices = undefined> {
       const hasErrors = Object.values(errors).some((e) => e !== undefined);
 
       if (hasErrors) {
+        api.header('x-bad-request-type', 'zod');
         return api.throw(StatusCodes.BAD_REQUEST, { data: errors });
       }
 

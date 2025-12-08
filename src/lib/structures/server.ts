@@ -95,7 +95,11 @@ export class Server<TAuth = any, TServices = undefined> {
     // Default CORS values
     const defaultOrigin = '*';
     const defaultMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
-    const defaultHeaders = ['Content-Type', 'Authorization'];
+    const defaultHeaders = [
+      'Content-Type',
+      'Authorization',
+      'x-bad-request-type',
+    ];
 
     // Build headers array: use headers if provided, otherwise merge defaultHeaders with extendHeaders
     let allowedHeaders: string[] = defaultHeaders;

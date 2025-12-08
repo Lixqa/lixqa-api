@@ -119,6 +119,7 @@ export class Server<TAuth = any, TServices = undefined> {
         origin: setup.cors?.origin ?? defaultOrigin,
         methods: setup.cors?.methods ?? defaultMethods,
         allowedHeaders,
+        exposedHeaders: allowedHeaders,
       }),
     );
 

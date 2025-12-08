@@ -9,7 +9,9 @@ export function filePathToRoutePath(filePath: string) {
     .replace(/^.*[/\\]routes[/\\]/, '') // Remove everything up to /routes/
     .replace(/^.*[/\\]internal-routes[/\\]/, '') // Remove everything up to /internal-routes/
     .replace(/\.schema.ts$/, '')
-    .replace(/\.ts$/, ''); // Remove .ts extension
+    .replace(/\.schema.js$/, '')
+    .replace(/\.ts$/, '') // Remove .ts extension
+    .replace(/\.js$/, ''); // Remove .js extension (for compiled files)
 
   // Convert backslashes to forward slashes (Windows compatibility)
   routePath = routePath.replace(/\\/g, '/');

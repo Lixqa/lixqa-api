@@ -10,6 +10,7 @@ export {
   createFileSchema,
   FileValidationPresets,
 } from './lib/helpers/file-validators';
+export { debugLog, DebugLogger } from './lib/helpers/debug';
 
 function catchApiKill(e: unknown) {
   if (typeof e == 'string' && e == 'API_KILL') return;

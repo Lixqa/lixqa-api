@@ -45,19 +45,26 @@ export class API<
   async authorize() {
     if (!this.route) return;
 
+    this.server.logger.debug(`Authorizing request: ${this.method} ${this.route.path}`);
+
     const settings = this.route.settingsFor(this.method);
 
     // Check if authOverwrite exists
     if (settings.authOverwrite) {
+      this.server.logger.debug('Using authOverwrite for authentication');
       const passedAuthOverwrite = settings.authOverwrite(this);
 
       // If it is a promise, await it
       if (passedAuthOverwrite instanceof Promise) await passedAuthOverwrite;
 
       // If not passed, throw
-      if (!passedAuthOverwrite) this.throw(StatusCodes.UNAUTHORIZED);
+      if (!passedAuthOverwrite) {
+        this.server.logger.debug('authOverwrite returned false, unauthorized');
+        this.throw(StatusCodes.UNAUTHORIZED);
+      }
 
       // Passed, skip further auth
+      this.server.logger.debug('authOverwrite passed');
       return;
     }
 
@@ -65,12 +72,16 @@ export class API<
 
     // No token provided
     if (!token) {
+      this.server.logger.debug('No authorization token provided');
       if (!settings?.unauthed) {
+        this.server.logger.debug('Route requires authentication, throwing 401');
         this.throw(StatusCodes.UNAUTHORIZED);
       }
+      this.server.logger.debug('Route allows unauthenticated access');
       return;
     }
 
+    this.server.logger.debug('Token provided, validating...');
     // Token provided — try to find user
     const authenticationCall = this.server.authenticationMethod({
       token,
@@ -83,21 +94,27 @@ export class API<
 
     // No user
     if (!authentication) {
+      this.server.logger.debug('Authentication failed - invalid token');
       //Check if we allow unauthed
       if (!settings?.unauthed) {
         //We don't, throw
+        this.server.logger.debug('Route requires authentication, throwing 401');
         this.throw(StatusCodes.UNAUTHORIZED);
       }
 
       //We do, allow
+      this.server.logger.debug('Route allows unauthenticated access');
       return;
     }
 
     // User is there, set it
+    this.server.logger.debug('Authentication successful');
     this.authentication = authentication;
   }
 
   validateSchema() {
+    this.server.logger.debug(`Validating schema for: ${this.method} ${this.route?.path || 'unknown'}`);
+
     const errors: {
       [key in 'body' | 'params' | 'query' | 'files']:
         | z.core.$ZodFormattedError<unknown, string>
@@ -109,13 +126,20 @@ export class API<
       files: undefined,
     };
 
-    if (!this.route) return errors;
+    if (!this.route) {
+      this.server.logger.debug('No route found, skipping schema validation');
+      return errors;
+    }
 
     const method = this.method;
 
     const schema = this.route.schema?.file;
 
     const methodSchema = schema?.[method];
+    
+    if (!methodSchema) {
+      this.server.logger.debug('No schema defined for this method');
+    }
 
     if (
       method !== 'GET' &&
@@ -180,7 +204,9 @@ export class API<
     const hasErrors = Object.values(errors).some((e) => e !== undefined);
 
     if (!hasErrors) {
-      console.log('Schema validation passed.');
+      this.server.logger.debug('Schema validation passed');
+    } else {
+      this.server.logger.debug('Schema validation failed:', errors);
     }
 
     return errors;

@@ -13,5 +13,6 @@ export type Config<TAuth = any, TServices = undefined> = {
     store: 'memory' | 'disk';
     diskPath?: string;
   };
+  debug?: boolean;
 };
 

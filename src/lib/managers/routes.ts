@@ -17,19 +17,21 @@ export class RouteManager {
   }
 
   init() {
-    console.log('[DEBUG] RouteManager.init() - Starting route initialization');
+    this.server.logger.debug(
+      'RouteManager.init() - Starting route initialization',
+    );
 
     // Load internal routes first (but don't add to items yet)
     // This gives us the paths for conflict checking
-    console.log('[DEBUG] Loading internal routes...');
+    this.server.logger.debug('Loading internal routes...');
     const { routes: internalRoutes, paths: reservedPaths } =
       this.loadInternalRoutes();
 
-    console.log(
-      `[DEBUG] Internal routes loaded: ${internalRoutes.size} routes, ${reservedPaths.size} reserved paths`,
+    this.server.logger.debug(
+      `Internal routes loaded: ${internalRoutes.size} routes, ${reservedPaths.size} reserved paths`,
     );
-    console.log(
-      `[DEBUG] Reserved paths: ${Array.from(reservedPaths).join(', ') || '(none)'}`,
+    this.server.logger.debug(
+      `Reserved paths: ${Array.from(reservedPaths).join(', ') || '(none)'}`,
     );
 
     // Load user routes first
@@ -37,7 +39,7 @@ export class RouteManager {
       process.cwd(),
       this.server.routesBasePath,
     );
-    console.log(`[DEBUG] Loading user routes from: ${userRoutesBasePath}`);
+    this.server.logger.debug(`Loading user routes from: ${userRoutesBasePath}`);
 
     const userRouteFiles = findFilesRecursive(
       userRoutesBasePath,
@@ -45,19 +47,22 @@ export class RouteManager {
         entry.name.endsWith('.ts') && !entry.name.endsWith('.schema.ts'),
     );
 
-    console.log(`[DEBUG] Found ${userRouteFiles.length} user route files`);
+    this.server.logger.debug(`Found ${userRouteFiles.length} user route files`);
 
     for (const filePath of userRouteFiles) {
       try {
         const route = new Route(this.server, filePath);
-        console.log(
-          `[DEBUG] Checking user route: ${route.path} (from ${filePath})`,
+        this.server.logger.debug(
+          `Checking user route: ${route.path} (from ${filePath})`,
         );
 
         // Dynamically check if user route conflicts with any reserved internal route
         if (reservedPaths.has(route.path)) {
           console.warn(
-            `[DEBUG] CONFLICT DETECTED: Route "${route.path}" is reserved and will be overridden by the built-in route.`,
+            `Warning: Route "${route.path}" is reserved and will be overridden by the built-in route.`,
+          );
+          this.server.logger.debug(
+            `CONFLICT DETECTED: Route "${route.path}" is reserved`,
           );
           continue; // Skip adding user's route
         }
@@ -69,19 +74,19 @@ export class RouteManager {
       }
     }
 
-    console.log(
-      `[DEBUG] User routes loaded. Total routes in items: ${this.items.size}`,
+    this.server.logger.debug(
+      `User routes loaded. Total routes in items: ${this.items.size}`,
     );
 
     // Now add internal routes to items (so they override user routes)
-    console.log('[DEBUG] Adding internal routes to items collection...');
+    this.server.logger.debug('Adding internal routes to items collection...');
     internalRoutes.forEach((route, routePath) => {
-      console.log(`[DEBUG] Adding internal route: ${routePath}`);
+      this.server.logger.debug(`Adding internal route: ${routePath}`);
       this.items.set(routePath, route);
     });
 
-    console.log(
-      `[DEBUG] Route initialization complete. Total routes: ${this.items.size}`,
+    this.server.logger.debug(
+      `Route initialization complete. Total routes: ${this.items.size}`,
     );
   }
 
@@ -91,9 +96,11 @@ export class RouteManager {
     // and compiled (dist/lib/managers/routes.js -> dist/internal-routes)
     const currentDir = __dirname;
     const internalRoutesPath = path.join(currentDir, '../../internal-routes');
-    console.log(`[DEBUG] getInternalRoutesPath() - Current dir: ${currentDir}`);
-    console.log(
-      `[DEBUG] getInternalRoutesPath() - Internal routes path: ${internalRoutesPath}`,
+    this.server.logger.debug(
+      `getInternalRoutesPath() - Current dir: ${currentDir}`,
+    );
+    this.server.logger.debug(
+      `getInternalRoutesPath() - Internal routes path: ${internalRoutesPath}`,
     );
     return internalRoutesPath;
   }
@@ -103,13 +110,13 @@ export class RouteManager {
 
     // Check if internal-routes directory exists
     const exists = fs.existsSync(internalRoutesPath);
-    console.log(
-      `[DEBUG] findInternalRouteFiles() - Directory exists: ${exists}`,
+    this.server.logger.debug(
+      `findInternalRouteFiles() - Directory exists: ${exists}`,
     );
 
     if (!exists) {
-      console.log(
-        '[DEBUG] findInternalRouteFiles() - No internal-routes directory found, returning empty array',
+      this.server.logger.debug(
+        'findInternalRouteFiles() - No internal-routes directory found, returning empty array',
       );
       return []; // No internal routes directory, return empty array
     }
@@ -124,8 +131,8 @@ export class RouteManager {
         !entry.name.endsWith('.d.js'),
     );
 
-    console.log(
-      `[DEBUG] findInternalRouteFiles() - Found ${files.length} files:`,
+    this.server.logger.debug(
+      `findInternalRouteFiles() - Found ${files.length} files:`,
       files,
     );
     return files;
@@ -135,58 +142,74 @@ export class RouteManager {
     routes: Collection<string, Route>;
     paths: Set<string>;
   } {
-    console.log(
-      '[DEBUG] loadInternalRoutes() - Starting to load internal routes',
+    this.server.logger.debug(
+      'loadInternalRoutes() - Starting to load internal routes',
     );
     const routes = new Collection<string, Route>();
     const paths = new Set<string>();
     const internalRouteFiles = this.findInternalRouteFiles();
 
-    console.log(
-      `[DEBUG] loadInternalRoutes() - Processing ${internalRouteFiles.length} internal route files`,
+    this.server.logger.debug(
+      `loadInternalRoutes() - Processing ${internalRouteFiles.length} internal route files`,
     );
 
     for (const filePath of internalRouteFiles) {
       try {
         // Convert .ts to .js if needed for runtime (require() needs .js)
         const runtimePath = filePath.replace(/\.ts$/, '.js');
-        console.log(
-          `[DEBUG] loadInternalRoutes() - Loading file: ${filePath} -> runtime: ${runtimePath}`,
+        this.server.logger.debug(
+          `loadInternalRoutes() - Loading file: ${filePath} -> runtime: ${runtimePath}`,
         );
 
         const route = new Route(this.server, runtimePath);
-        console.log(
-          `[DEBUG] loadInternalRoutes() - Route created with path: ${route.path}`,
+        this.server.logger.debug(
+          `loadInternalRoutes() - Route created with path: ${route.path}`,
         );
 
         routes.set(route.path, route);
         paths.add(route.path);
         Logger.routeLoaded(route);
-        console.log(
-          `[DEBUG] loadInternalRoutes() - Successfully loaded route ${route.path}`,
+        this.server.logger.debug(
+          `loadInternalRoutes() - Successfully loaded route ${route.path}`,
         );
       } catch (error) {
-        console.error(
-          `[DEBUG] loadInternalRoutes() - Failed to load internal route ${filePath}:`,
+        console.error(`Failed to load internal route ${filePath}:`, error);
+        this.server.logger.debug(
+          `loadInternalRoutes() - Failed to load internal route ${filePath}:`,
           error,
         );
       }
     }
 
-    console.log(
-      `[DEBUG] loadInternalRoutes() - Complete. Loaded ${routes.size} routes, ${paths.size} paths`,
+    this.server.logger.debug(
+      `loadInternalRoutes() - Complete. Loaded ${routes.size} routes, ${paths.size} paths`,
     );
     return { routes, paths };
   }
 
   mergeSchemas(schemas: Collection<string, Schema>) {
+    this.server.logger.debug(`Merging ${schemas.size} schemas with routes...`);
+
+    let mergedCount = 0;
     schemas.forEach((schema) => {
       const matchingRoute = this.items.find(
         (route) => route.path == schema.path,
       );
 
-      if (matchingRoute) matchingRoute.schema = schema;
+      if (matchingRoute) {
+        matchingRoute.schema = schema;
+        mergedCount++;
+        this.server.logger.debug(`Merged schema for route: ${schema.path}`);
+      } else {
+        this.server.logger.debug(
+          `No matching route found for schema: ${schema.path}`,
+        );
+      }
     });
+
+    this.server.logger.debug(
+      `Schema merge complete. Merged ${mergedCount}/${schemas.size} schemas`,
+    );
   }
 
   resolveUrl(url: string) {

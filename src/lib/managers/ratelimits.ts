@@ -22,9 +22,12 @@ export class RatelimitManager {
     if (!api.route) return false;
 
     const settings = api.route.ratelimitsFor(api.method);
-
     const clientIdentifier = this.getClientIdentifier(api);
     const routeIdentifier = this.getRouteIdentifier(api);
+
+    api.server.logger.debug(
+      `Ratelimit check: client=${clientIdentifier}, route=${routeIdentifier}, limit=${settings.limit}, scope=${settings.scope}`,
+    );
 
     let item = this.items.find(
       (item) =>
@@ -41,16 +44,21 @@ export class RatelimitManager {
           limited: false,
         })
         .last()!;
+      api.server.logger.debug('Created new ratelimit item');
     }
 
     if (item.count >= settings.limit) {
       if (item.limited) {
         if (settings.strict) item.end = Date.now() + settings.punishment;
+        api.server.logger.debug('Rate limit already active, extending punishment');
       } else {
         item.limited = true;
         item.end =
           Date.now() + Math.max(settings.punishment, settings.remember);
+        api.server.logger.debug(`Rate limit exceeded! Count: ${item.count}, Limit: ${settings.limit}`);
       }
+    } else {
+      api.server.logger.debug(`Rate limit OK. Count: ${item.count}/${settings.limit}`);
     }
 
     api.header('X-Ratelimit-Limit', settings.limit.toString());
@@ -117,6 +125,7 @@ export class RatelimitManager {
     );
     if (item && api.route.ratelimitsFor(api.method).limit > item.count) {
       item.count++;
+      api.server.logger.debug(`Increased rate limit count: ${item.count}/${api.route.ratelimitsFor(api.method).limit}`);
     }
   }
 }

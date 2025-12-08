@@ -7,6 +7,7 @@ import { API } from './api';
 import cors from 'cors';
 import type { Config, Request, Response, RouteMethod } from '../typings';
 import { Logger } from '../helpers/logger';
+import { DebugLogger } from '../helpers/debug';
 import { StatusCodes } from 'http-status-codes';
 import { RouteManager } from '../managers/routes';
 import { SchemaManager } from '../managers/schemas';
@@ -29,6 +30,7 @@ export class Server<TAuth = any, TServices = undefined> {
   schemas: SchemaManager;
   middlewares: MiddlewareManager;
   ratelimits = new RatelimitManager();
+  logger: DebugLogger;
   config: Config<TAuth, TServices> = undefined as unknown as Config<
     TAuth,
     TServices
@@ -83,6 +85,9 @@ export class Server<TAuth = any, TServices = undefined> {
     this.authenticationMethod = setup.authenticationMethod;
     this.routesBasePath = setup.routesBasePath;
     this.services = setup.services as TServices;
+
+    // Initialize logger (will be updated with config in initConfig)
+    this.logger = new DebugLogger(undefined);
 
     this.routes = new RouteManager(this);
     this.schemas = new SchemaManager(this);
@@ -152,7 +157,14 @@ export class Server<TAuth = any, TServices = undefined> {
       const req = _req as Request<TAuth, TServices>;
       const res = _res as Response;
 
+      this.logger.debug(`Request received: ${req.method} ${req.path}`);
+
       const resolved = this.routes.resolveUrl(req.path);
+      this.logger.debug(
+        resolved
+          ? `Route resolved: ${resolved.route.path} (params: ${JSON.stringify(resolved.params)})`
+          : `Route not found: ${req.path}`,
+      );
 
       const api = new API<unknown, unknown, unknown, unknown, TAuth, TServices>(
         req,
@@ -260,17 +272,29 @@ export class Server<TAuth = any, TServices = undefined> {
       const api = req.api;
       const route = api.route!;
 
+      this.logger.debug(`Processing request: ${req.method} ${route.path}`);
+
       const handler = route.file[req.method as RouteMethod];
 
       const settings = route.settingsFor(api.method);
 
-      if (settings.disabled) api.throw(StatusCodes.SERVICE_UNAVAILABLE);
-      if (settings.moved)
+      if (settings.disabled) {
+        this.logger.debug(`Route ${route.path} is disabled`);
+        api.throw(StatusCodes.SERVICE_UNAVAILABLE);
+      }
+      if (settings.moved) {
+        this.logger.debug(`Route ${route.path} moved to: ${settings.moved}`);
         api.throw(StatusCodes.MOVED_PERMANENTLY, { data: settings.moved });
+      }
 
-      if (this.ratelimits.check(api)) api.throw(StatusCodes.TOO_MANY_REQUESTS);
+      this.logger.debug('Checking rate limits...');
+      if (this.ratelimits.check(api)) {
+        this.logger.debug('Rate limit exceeded, throwing 429');
+        api.throw(StatusCodes.TOO_MANY_REQUESTS);
+      }
       this.ratelimits.increase(api);
 
+      this.logger.debug('Authorizing request...');
       await api.authorize();
 
       // Execute middleware after authentication but before schema validation
@@ -278,42 +302,62 @@ export class Server<TAuth = any, TServices = undefined> {
         await this.middlewares.executeAll(api);
       } catch (error) {
         if (typeof error == 'string' && error == 'API_KILL') return;
+        this.logger.debug('Middleware execution error:', error);
         this.onError?.({ api, error });
         api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
       }
 
+      this.logger.debug('Validating schema...');
       const errors = api.validateSchema();
 
       const hasErrors = Object.values(errors).some((e) => e !== undefined);
 
       if (hasErrors) {
+        this.logger.debug('Schema validation failed:', errors);
         api.header('x-bad-request-type', 'zod');
         return api.throw(StatusCodes.BAD_REQUEST, { data: errors });
       }
 
       if (handler) {
+        this.logger.debug(`Executing route handler: ${req.method} ${route.path}`);
         // The handler expects a ConditionalAPI type, but we can't infer the schema types at runtime
         // So we cast to the expected type while preserving the authentication typing
         // This allows the route handler to get the correct typing for schema-based properties
         try {
           await handler(api as any);
+          this.logger.debug(`Route handler completed successfully: ${req.method} ${route.path}`);
         } catch (error) {
           if (typeof error == 'string' && error == 'API_KILL') return;
+          this.logger.debug(`Route handler error: ${req.method} ${route.path}`, error);
           this.onError?.({ api, error });
           api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
         }
       } else {
+        this.logger.debug(`No handler found for method ${req.method} on route ${route.path}`);
         api.throw(StatusCodes.METHOD_NOT_ALLOWED);
       }
     });
   }
 
   async init() {
+    this.logger.debug('Server.init() - Starting server initialization');
+    
+    this.logger.debug('Initializing config...');
     this.initConfig();
+    
+    this.logger.debug('Initializing routes...');
     this.routes.init();
+    
+    this.logger.debug('Initializing schemas...');
     this.schemas.init();
+    
+    this.logger.debug('Initializing middlewares...');
     this.middlewares.init();
+    
+    this.logger.debug('Merging schemas with routes...');
     this.routes.mergeSchemas(this.schemas.items);
+    
+    this.logger.debug('Server initialization complete');
   }
 
   async start() {
@@ -331,25 +375,39 @@ export class Server<TAuth = any, TServices = undefined> {
   }
 
   private initConfig(): void {
+    this.logger.debug('initConfig() - Looking for config files');
     const variations = ['lixqa-api.config.js', 'lixqa-api.config.ts'];
 
     for (const variation of variations) {
       const filePath = path.join(process.cwd(), variation);
       const exists = fs.existsSync(filePath);
+      this.logger.debug(`Checking config file: ${filePath} (exists: ${exists})`);
+      
       if (!exists) continue;
 
       try {
+        this.logger.debug(`Loading config from: ${filePath}`);
         const configModule = require(filePath);
         this.config = (configModule?.default ?? configModule) as Config<
           TAuth,
           TServices
         >;
+        // Update logger with the loaded config
+        this.logger.updateConfig(this.config);
+        this.logger.debug('Config loaded successfully', {
+          port: this.config.port,
+          hostname: this.config.hostname,
+          debug: this.config.debug,
+        });
         console.log('Inited config', this.config);
         return;
       } catch (err) {
         console.warn(`Failed to load config: ${filePath}`);
         console.warn(err);
+        this.logger.debug(`Failed to load config: ${filePath}`, err);
       }
     }
+
+    this.logger.debug('No config file found, using defaults');
   }
 }

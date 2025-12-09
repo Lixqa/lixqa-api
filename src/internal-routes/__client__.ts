@@ -2,7 +2,7 @@ import type { RouteDefinition } from '../lib/typings';
 
 const route: RouteDefinition = {
   settings: {
-    unauthed: true, // Allow unauthenticated access
+    unauthed: true,
   },
   GET: async (api) => {
     const routes = api.server.routes.items.map((route) => {

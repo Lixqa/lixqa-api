@@ -104,6 +104,11 @@ export class Server<TAuth = any, TServices = undefined> {
       'Content-Type',
       'Authorization',
       'x-bad-request-type',
+      'x-ratelimit-limit',
+      'x-ratelimit-remaining',
+      'x-ratelimit-reset',
+      'x-ratelimit-reset-after',
+      'x-ratelimit-scope',
     ];
 
     // Build headers array: use headers if provided, otherwise merge defaultHeaders with extendHeaders
@@ -319,21 +324,30 @@ export class Server<TAuth = any, TServices = undefined> {
       }
 
       if (handler) {
-        this.logger.debug(`Executing route handler: ${req.method} ${route.path}`);
+        this.logger.debug(
+          `Executing route handler: ${req.method} ${route.path}`,
+        );
         // The handler expects a ConditionalAPI type, but we can't infer the schema types at runtime
         // So we cast to the expected type while preserving the authentication typing
         // This allows the route handler to get the correct typing for schema-based properties
         try {
           await handler(api as any);
-          this.logger.debug(`Route handler completed successfully: ${req.method} ${route.path}`);
+          this.logger.debug(
+            `Route handler completed successfully: ${req.method} ${route.path}`,
+          );
         } catch (error) {
           if (typeof error == 'string' && error == 'API_KILL') return;
-          this.logger.debug(`Route handler error: ${req.method} ${route.path}`, error);
+          this.logger.debug(
+            `Route handler error: ${req.method} ${route.path}`,
+            error,
+          );
           this.onError?.({ api, error });
           api.throw(StatusCodes.INTERNAL_SERVER_ERROR);
         }
       } else {
-        this.logger.debug(`No handler found for method ${req.method} on route ${route.path}`);
+        this.logger.debug(
+          `No handler found for method ${req.method} on route ${route.path}`,
+        );
         api.throw(StatusCodes.METHOD_NOT_ALLOWED);
       }
     });
@@ -341,22 +355,22 @@ export class Server<TAuth = any, TServices = undefined> {
 
   async init() {
     this.logger.debug('Server.init() - Starting server initialization');
-    
+
     this.logger.debug('Initializing config...');
     this.initConfig();
-    
+
     this.logger.debug('Initializing routes...');
     this.routes.init();
-    
+
     this.logger.debug('Initializing schemas...');
     this.schemas.init();
-    
+
     this.logger.debug('Initializing middlewares...');
     this.middlewares.init();
-    
+
     this.logger.debug('Merging schemas with routes...');
     this.routes.mergeSchemas(this.schemas.items);
-    
+
     this.logger.debug('Server initialization complete');
   }
 
@@ -381,8 +395,10 @@ export class Server<TAuth = any, TServices = undefined> {
     for (const variation of variations) {
       const filePath = path.join(process.cwd(), variation);
       const exists = fs.existsSync(filePath);
-      this.logger.debug(`Checking config file: ${filePath} (exists: ${exists})`);
-      
+      this.logger.debug(
+        `Checking config file: ${filePath} (exists: ${exists})`,
+      );
+
       if (!exists) continue;
 
       try {

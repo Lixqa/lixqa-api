@@ -253,10 +253,10 @@ export class Server<TAuth = any, TServices = undefined> {
       (
         err: unknown,
         _req: ExpressRequest,
-        _: ExpressResponse,
+        _res: ExpressResponse,
         next: ExpressNextFunction,
       ) => {
-        const req = _req as Request<TAuth, TServices>;
+        //const req = _req as Request<TAuth, TServices>;
 
         const error = err as SyntaxError & { status?: number; body?: string };
         if (
@@ -266,7 +266,8 @@ export class Server<TAuth = any, TServices = undefined> {
         ) {
           console.log('Invalid JSON', error);
           console.log('Body', error.body);
-          req.api.throw(StatusCodes.BAD_REQUEST, { data: 'Invalid JSON' });
+          //req.api.throw(StatusCodes.BAD_REQUEST, { data: 'Invalid JSON' }); // TODO: api is undefined here
+          _res.status(StatusCodes.BAD_REQUEST).json({ data: 'Invalid JSON' });
         }
 
         next(err);

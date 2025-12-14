@@ -264,6 +264,8 @@ export class Server<TAuth = any, TServices = undefined> {
           error.status === 400 &&
           error.body
         ) {
+          console.log('Invalid JSON', error);
+          console.log('Body', error.body);
           req.api.throw(StatusCodes.BAD_REQUEST, { data: 'Invalid JSON' });
         }
 

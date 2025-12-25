@@ -24,16 +24,31 @@ export function findFilesRecursive(
 
 /**
  * Checks if a schema is a ZodObject (created with z.object())
+ * This also detects schemas that started as z.object() but were transformed
+ * with methods like .partial(), .strict(), etc.
  */
 export function isZodObject(
   schema: unknown,
 ): schema is z.ZodObject<any, any> {
-  return (
-    schema !== null &&
-    typeof schema === 'object' &&
-    '_def' in schema &&
-    (schema as any)._def?.typeName === 'ZodObject'
-  );
+  if (!schema || typeof schema !== 'object' || !('_def' in schema)) {
+    return false;
+  }
+  
+  const def = (schema as any)._def;
+  
+  // Direct ZodObject check
+  if (def?.typeName === 'ZodObject') {
+    return true;
+  }
+  
+  // Check if it has a 'shape' property, which is unique to ZodObject
+  // (even when transformed with .partial(), .strict(), etc.)
+  // This handles cases like z.object({...}).partial().strict()
+  if (def?.shape && typeof def.shape === 'object') {
+    return true;
+  }
+  
+  return false;
 }
 
 /**

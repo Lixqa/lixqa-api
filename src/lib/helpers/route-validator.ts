@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { Route } from '../structures/route';
 import type { RouteMethod } from '../typings';
 import { Logger } from './logger';
+import { isZodObject } from './utils';
 
 const ROUTE_METHODS: RouteMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
@@ -91,6 +92,9 @@ export class RouteValidator {
           `Schema is defined for methods without handlers: ${missingHandlers.join(', ')}. Remove the schema definitions or add the handlers.`,
         );
       }
+
+      // Check for deprecated params schema usage
+      this.checkSchemaDeprecations();
     }
 
     // Warning: Route has handlers but no schema (might be intentional, so just a warning)
@@ -234,6 +238,27 @@ export class RouteValidator {
       this.warn(
         `Ratelimit for ${contextStr} allows ${ratelimits.limit} requests in ${ratelimits.remember}ms. This may allow rapid-fire requests.`,
       );
+    }
+  }
+
+  private checkSchemaDeprecations() {
+    if (!this.route.schema) return;
+
+    const schema = this.route.schema.file;
+
+    // Check params (query must be z.object() so no deprecation check needed)
+    if (schema.params && isZodObject(schema.params)) {
+      // Add as a deprecation warning issue
+      this.issues.push({
+        type: 'warning',
+        message:
+          'Using z.object() for params schema is deprecated. Use a plain object instead: params: { userId: z.string() }',
+      });
+      // Also update stats tracker for deprecation warnings
+      const statsTracker = Logger.getStatsTracker();
+      if (statsTracker) {
+        statsTracker.deprecationWarnings++;
+      }
     }
   }
 

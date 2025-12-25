@@ -75,5 +75,8 @@ export function normalizeObjectSchema(
   }
   
   // Otherwise, it's a plain object - wrap it in z.object()
-  return z.object(schema as { [key: string]: z.ZodTypeAny });
+  const normalized = z.object(schema as { [key: string]: z.ZodTypeAny });
+  // Mark as normalized so we can distinguish from explicitly written z.object()
+  (normalized as any).__normalized = true;
+  return normalized;
 }

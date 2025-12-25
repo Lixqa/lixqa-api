@@ -259,7 +259,12 @@ export class RouteValidator {
     const schema = this.route.schema.file;
 
     // Check params (query must be z.object() so no deprecation check needed)
-    if (schema.params && isZodObject(schema.params)) {
+    // Only warn if it's explicitly z.object(), not if it was normalized from a plain object
+    if (
+      schema.params &&
+      isZodObject(schema.params) &&
+      !(schema.params as any).__normalized
+    ) {
       // Add as a warning issue (deprecation warnings are counted as warnings)
       this.warn(
         'Using z.object() for params schema is deprecated. Use a plain object instead: params: { userId: z.string() }',

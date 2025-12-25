@@ -23,6 +23,10 @@ export class Logger {
     Logger.statsTracker = null;
   }
 
+  static getStatsTracker(): StartupStats | null {
+    return Logger.statsTracker;
+  }
+
   static routeLoaded(route: Route) {
     if (Logger.statsTracker) {
       Logger.statsTracker.routesLoaded++;

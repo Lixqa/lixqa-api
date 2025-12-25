@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { Route } from '../structures/route';
 import type { RouteMethod } from '../typings';
+import { Logger } from './logger';
 
 const ROUTE_METHODS: RouteMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
@@ -243,6 +244,34 @@ export class RouteValidator {
     // Filter out routes with no issues
     const routesWithIssues = results.filter((r) => r.issues.length > 0);
 
+    // Count warnings and errors for statistics
+    let warningCount = 0;
+    let errorCount = 0;
+
+    routesWithIssues.forEach((result) => {
+      result.issues.forEach((issue) => {
+        if (issue.type === 'error') {
+          errorCount++;
+        } else {
+          warningCount++;
+        }
+      });
+    });
+
+    // Count duplicate paths as warnings
+    duplicatePaths.forEach((filePaths) => {
+      if (filePaths.length > 1) {
+        warningCount++;
+      }
+    });
+
+    // Update startup statistics
+    const statsTracker = Logger.getStatsTracker();
+    if (statsTracker) {
+      statsTracker.warnings += warningCount;
+      statsTracker.errors += errorCount;
+    }
+
     // If no issues, return early
     if (routesWithIssues.length === 0 && duplicatePaths.size === 0) {
       return;
@@ -298,7 +327,7 @@ export class RouteValidator {
           ? 'The route is invalid and may not work correctly.'
           : "The route was loaded. Please don't forget to fix the issues.";
 
-        console.log(` ${chalk.gray('╚═»')} ${statusColor(statusText)}\n`);
+        console.log(` ${chalk.gray('└─')} ${statusColor(statusText)}\n`);
       });
     }
 

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { z } from 'zod';
 
 export function findFilesRecursive(
   dir: string,
@@ -19,4 +20,45 @@ export function findFilesRecursive(
   }
 
   return files;
+}
+
+/**
+ * Checks if a schema is a ZodObject (created with z.object())
+ */
+export function isZodObject(
+  schema: unknown,
+): schema is z.ZodObject<any, any> {
+  return (
+    schema !== null &&
+    typeof schema === 'object' &&
+    '_def' in schema &&
+    (schema as any)._def?.typeName === 'ZodObject'
+  );
+}
+
+/**
+ * Normalizes a schema that can be either a Zod schema or a plain object with Zod schema properties.
+ * If it's a plain object, wraps it in z.object(). Otherwise, returns it as-is.
+ * 
+ * @param schema - The schema to normalize
+ * @param onDeprecated - Optional callback when a deprecated z.object() is detected
+ * @param location - Optional location string for deprecation warnings
+ */
+export function normalizeObjectSchema(
+  schema: z.ZodTypeAny | { [key: string]: z.ZodTypeAny },
+  onDeprecated?: (field: 'params' | 'query', location?: string) => void,
+  location?: string,
+): z.ZodTypeAny {
+  // Check if it's already a Zod schema (has _def property)
+  if (schema && typeof schema === 'object' && '_def' in schema) {
+    // Check if it's a ZodObject (z.object()) - this is deprecated for params/query
+    if (isZodObject(schema) && onDeprecated) {
+      // We don't know which field it is here, so we'll let the caller specify
+      // This will be called from define-schema.ts where we know the context
+    }
+    return schema as z.ZodTypeAny;
+  }
+  
+  // Otherwise, it's a plain object - wrap it in z.object()
+  return z.object(schema as { [key: string]: z.ZodTypeAny });
 }

@@ -3,16 +3,24 @@ import type { RouteMethod } from './common';
 import type { UploadedFile } from './common';
 
 /**
+ * A type that represents either a Zod schema or a plain object with Zod schema properties.
+ * For query and params, we allow plain objects since they must always be objects.
+ */
+type ZodObjectOrPlainObject<T extends z.ZodTypeAny = z.ZodTypeAny> = 
+  | T 
+  | { [key: string]: z.ZodTypeAny };
+
+/**
  * Schema definition structure for route validation
  */
 export type SchemaDefinition = Partial<{
-  params: z.ZodTypeAny;
+  params: ZodObjectOrPlainObject<z.ZodObject<any, any>>;
 }> &
   Partial<{
     [M in RouteMethod]: M extends 'GET'
-      ? { query?: z.ZodTypeAny; response?: z.ZodTypeAny }
+      ? { query?: ZodObjectOrPlainObject<z.ZodObject<any, any>>; response?: z.ZodTypeAny }
       : {
-          query?: z.ZodTypeAny;
+          query?: ZodObjectOrPlainObject<z.ZodObject<any, any>>;
           body?: z.ZodTypeAny;
           files?: z.ZodTypeAny;
           response?: z.ZodTypeAny;
@@ -20,9 +28,13 @@ export type SchemaDefinition = Partial<{
   }>;
 
 /**
- * Helper to extract inferred type from a Zod schema
+ * Helper to extract inferred type from a Zod schema or plain object
  */
-type InferZodType<T> = T extends z.ZodTypeAny ? z.infer<T> : unknown;
+type InferZodType<T> = T extends z.ZodTypeAny 
+  ? z.infer<T> 
+  : T extends { [key: string]: z.ZodTypeAny }
+    ? z.infer<z.ZodObject<{ [K in keyof T]: T[K] }>>
+    : unknown;
 
 /**
  * Extract params type from schema definition

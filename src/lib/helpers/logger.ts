@@ -59,4 +59,20 @@ ${prefix}
   static starting() {
     console.info(chalk.gray('[', chalk.green('⌛'), ']', 'API is starting...'));
   }
+
+  static deprecationWarning(
+    message: string,
+    location?: string,
+  ) {
+    console.warn(
+      chalk.gray(
+        '[',
+        chalk.yellow('⚠'),
+        ']',
+      ),
+      chalk.yellow('Deprecation Warning:'),
+      message,
+      location ? chalk.gray(`(${location})`) : '',
+    );
+  }
 }

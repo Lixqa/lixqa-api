@@ -7,6 +7,7 @@ import { Route } from './route';
 import z from 'zod';
 import { getReasonPhrase, StatusCodes } from 'http-status-codes';
 import { msgpackInstance, Server } from './server';
+import { normalizeObjectSchema } from '../helpers/utils';
 
 export class API<
   TBody = unknown,
@@ -181,7 +182,8 @@ export class API<
 
     // Validate global params schema if it exists
     if (schema?.params) {
-      const result = schema.params.safeParse(this.params);
+      const paramsSchema = normalizeObjectSchema(schema.params as any);
+      const result = paramsSchema.safeParse(this.params);
       if (!result.success) {
         console.warn('Request params validation failed.', this.params);
         errors.params = z.formatError(result.error);
@@ -192,7 +194,8 @@ export class API<
 
     // Validate query params from method-specific schema
     if (methodSchema?.query) {
-      const result = methodSchema.query.safeParse(this.query);
+      const querySchema = normalizeObjectSchema(methodSchema.query as any);
+      const result = querySchema.safeParse(this.query);
       if (!result.success) {
         console.warn('Request query validation failed.');
         errors.query = z.formatError(result.error);

@@ -235,8 +235,10 @@ export class RouteManager {
       const result = validator.validate();
       validationResults.push(result);
 
-      // Mark reserved routes for removal (they won't be loaded)
-      if (this.reservedPaths.has(route.path)) {
+      // Mark reserved user routes for removal (they won't be loaded)
+      // Don't remove internal routes - they should stay
+      const isInternalRoute = route.filePath.includes('internal-routes');
+      if (this.reservedPaths.has(route.path) && !isInternalRoute) {
         routesToRemove.push(route.path);
       }
     });

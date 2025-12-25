@@ -4,12 +4,13 @@ import { Logger } from './helpers/logger';
 import { z } from 'zod';
 
 /**
- * Normalizes a schema definition by converting plain objects for params and query to z.object() schemas
+ * Normalizes a schema definition by converting plain objects for params to z.object() schemas.
+ * Query schemas must be z.object() and are not normalized.
  */
 function normalizeSchemaDefinition<T extends SchemaDefinition>(schema: T): T {
   const normalized = { ...schema } as any;
 
-  // Normalize params if it exists
+  // Normalize params if it exists (allow plain objects)
   if (normalized.params) {
     // Check if it's using deprecated z.object() syntax
     if (isZodObject(normalized.params)) {
@@ -23,25 +24,8 @@ function normalizeSchemaDefinition<T extends SchemaDefinition>(schema: T): T {
     }
   }
 
-  // Normalize query schemas in method-specific schemas
-  const routeMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
-  for (const method of routeMethods) {
-    if (normalized[method]?.query) {
-      // Check if it's using deprecated z.object() syntax
-      if (isZodObject(normalized[method].query)) {
-        Logger.deprecationWarning(
-          `Using z.object() for query schema in ${method} is deprecated. Use a plain object instead: query: { limit: z.number() }`,
-          'defineSchema',
-        );
-      }
-      if (!('_def' in normalized[method].query)) {
-        normalized[method] = {
-          ...normalized[method],
-          query: normalizeObjectSchema(normalized[method].query),
-        };
-      }
-    }
-  }
+  // Query schemas must be z.object() - no normalization needed
+  // TypeScript will enforce this at compile time
 
   return normalized as T;
 }

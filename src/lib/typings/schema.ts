@@ -4,7 +4,7 @@ import type { UploadedFile } from './common';
 
 /**
  * A type that represents either a Zod schema or a plain object with Zod schema properties.
- * For query and params, we allow plain objects since they must always be objects.
+ * Used for params since they must always be objects and we allow the simpler syntax.
  */
 type ZodObjectOrPlainObject<T extends z.ZodTypeAny = z.ZodTypeAny> = 
   | T 
@@ -18,9 +18,9 @@ export type SchemaDefinition = Partial<{
 }> &
   Partial<{
     [M in RouteMethod]: M extends 'GET'
-      ? { query?: ZodObjectOrPlainObject<z.ZodObject<any, any>>; response?: z.ZodTypeAny }
+      ? { query?: z.ZodObject<any, any>; response?: z.ZodTypeAny }
       : {
-          query?: ZodObjectOrPlainObject<z.ZodObject<any, any>>;
+          query?: z.ZodObject<any, any>;
           body?: z.ZodTypeAny;
           files?: z.ZodTypeAny;
           response?: z.ZodTypeAny;
@@ -54,11 +54,14 @@ type ExtractBody<V, M extends RouteMethod> = M extends 'GET'
 
 /**
  * Extract query type from schema definition for a specific method
+ * Query must always be a z.ZodObject (not a plain object)
  */
 type ExtractQuery<V, M extends RouteMethod> = V extends {
   [K in M]: { query: infer T };
 }
-  ? InferZodType<T>
+  ? T extends z.ZodTypeAny
+    ? z.infer<T>
+    : unknown
   : unknown;
 
 /**

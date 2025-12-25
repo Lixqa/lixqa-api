@@ -193,9 +193,9 @@ export class API<
     }
 
     // Validate query params from method-specific schema
+    // Query must be a z.object() (enforced by TypeScript), so no normalization needed
     if (methodSchema?.query) {
-      const querySchema = normalizeObjectSchema(methodSchema.query as any);
-      const result = querySchema.safeParse(this.query);
+      const result = methodSchema.query.safeParse(this.query);
       if (!result.success) {
         console.warn('Request query validation failed.');
         errors.query = z.formatError(result.error);

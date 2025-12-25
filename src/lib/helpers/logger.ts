@@ -75,4 +75,20 @@ ${prefix}
       location ? chalk.gray(`(${location})`) : '',
     );
   }
+
+  static warning(
+    message: string,
+    location?: string,
+  ) {
+    console.warn(
+      chalk.gray(
+        '[',
+        chalk.yellow('⚠'),
+        ']',
+      ),
+      chalk.yellow('Warning:'),
+      message,
+      location ? chalk.gray(`(${location})`) : '',
+    );
+  }
 }

@@ -418,7 +418,6 @@ export class Server<TAuth = any, TServices = undefined> {
           hostname: this.config.hostname,
           debug: this.config.debug,
         });
-        console.log('Inited config', this.config);
         return;
       } catch (err) {
         console.warn(`Failed to load config: ${filePath}`);

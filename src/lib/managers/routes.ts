@@ -58,8 +58,8 @@ export class RouteManager {
 
         // Dynamically check if user route conflicts with any reserved internal route
         if (reservedPaths.has(route.path)) {
-          console.warn(
-            `Warning: Route "${route.path}" is reserved and will be overridden by the built-in route.`,
+          Logger.warning(
+            `Route "${route.path}" is reserved and will be overridden by the built-in route.`,
           );
           this.server.logger.debug(
             `CONFLICT DETECTED: Route "${route.path}" is reserved`,

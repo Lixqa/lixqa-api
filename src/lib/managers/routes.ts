@@ -14,6 +14,7 @@ import {
 export class RouteManager {
   items: Collection<string, Route> = new Collection();
   reservedPaths: Set<string> = new Set();
+  conflictingUserRoutes: Route[] = [];
 
   server: any;
 
@@ -86,12 +87,23 @@ export class RouteManager {
       `User routes loaded. Total routes in items: ${this.items.size}`,
     );
 
+    // Store user routes that conflict with reserved paths for validation
+    const conflictingUserRoutes: Route[] = [];
+    this.items.forEach((route) => {
+      if (reservedPaths.has(route.path)) {
+        conflictingUserRoutes.push(route);
+      }
+    });
+
     // Now add internal routes to items (so they override user routes)
     this.server.logger.debug('Adding internal routes to items collection...');
     internalRoutes.forEach((route, routePath) => {
       this.server.logger.debug(`Adding internal route: ${routePath}`);
       this.items.set(routePath, route);
     });
+
+    // Store conflicting user routes for later validation
+    this.conflictingUserRoutes = conflictingUserRoutes;
 
     this.server.logger.debug(
       `Route initialization complete. Total routes: ${this.items.size}`,
@@ -228,25 +240,25 @@ export class RouteManager {
 
     // Collect all validation results
     const validationResults: ValidationResult[] = [];
-    const routesToRemove: string[] = [];
 
-    this.items.forEach((route) => {
+    // First, validate conflicting user routes (before they were overridden by internal routes)
+    this.conflictingUserRoutes.forEach((route) => {
       const validator = new RouteValidator(route, this.reservedPaths);
       const result = validator.validate();
       validationResults.push(result);
-
-      // Mark reserved user routes for removal (they won't be loaded)
-      // Don't remove internal routes - they should stay
-      const isInternalRoute = route.filePath.includes('internal-routes');
-      if (this.reservedPaths.has(route.path) && !isInternalRoute) {
-        routesToRemove.push(route.path);
-      }
     });
 
-    // Remove reserved routes from items (they won't be loaded)
-    routesToRemove.forEach((path) => {
-      this.items.delete(path);
-      this.server.logger.debug(`Removed reserved route: ${path}`);
+    // Then validate all other routes in items (excluding internal routes from reserved check)
+    this.items.forEach((route) => {
+      // Skip if we already validated this route as a conflicting user route
+      const alreadyValidated = this.conflictingUserRoutes.some(
+        (r) => r.path === route.path && r.filePath === route.filePath,
+      );
+      if (alreadyValidated) return;
+
+      const validator = new RouteValidator(route, this.reservedPaths);
+      const result = validator.validate();
+      validationResults.push(result);
     });
 
     // Display all results at once, sorted and organized

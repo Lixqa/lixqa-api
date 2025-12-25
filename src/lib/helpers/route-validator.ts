@@ -33,10 +33,12 @@ export class RouteValidator {
     this.issues = [];
     this.invalid = false;
 
-    // Check if route is reserved (only warn for user routes, not internal routes)
-    // Internal routes have filePath containing 'internal-routes', user routes don't
+    // Check if route is reserved
+    // Only warn for user routes that conflict with reserved paths, not for internal routes themselves
     const isInternalRoute = this.route.filePath.includes('internal-routes');
     const isReserved = this.reservedPaths.has(this.route.path);
+
+    // Warn if it's a user route (not internal) that conflicts with a reserved path
     if (isReserved && !isInternalRoute) {
       this.warn(
         `Route "${this.route.path}" is reserved. Your route will be ignored and the built-in route will be used instead.`,

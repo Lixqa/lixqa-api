@@ -28,7 +28,9 @@ export class RouteValidator {
 
     // Error: No handlers at all
     if (availableMethods.length === 0) {
-      this.error('No route handlers found. At least one handler (GET, POST, PUT, DELETE, or PATCH) is required.');
+      this.error(
+        'No route handlers found. At least one handler (GET, POST, PUT, DELETE, or PATCH) is required.',
+      );
     }
 
     // Warning: Settings configured for methods without handlers
@@ -70,8 +72,8 @@ export class RouteValidator {
 
     // Warning: Schema defined for methods without handlers
     if (this.route.schema) {
-      const schemaMethods = Object.keys(this.route.schema.file).filter(
-        (key) => ROUTE_METHODS.includes(key as RouteMethod),
+      const schemaMethods = Object.keys(this.route.schema.file).filter((key) =>
+        ROUTE_METHODS.includes(key as RouteMethod),
       ) as RouteMethod[];
 
       const missingHandlers = schemaMethods.filter(
@@ -160,7 +162,11 @@ export class RouteValidator {
         this.warn(
           `Ratelimit limit for ${contextStr} is very high (${ratelimits.limit}). This may allow excessive requests.`,
         );
-      } else if (ratelimits.limit === 1 && ratelimits.remember > 60000) {
+      } else if (
+        ratelimits.limit === 1 &&
+        ratelimits.remember !== undefined &&
+        ratelimits.remember > 60000
+      ) {
         this.warn(
           `Ratelimit limit for ${contextStr} is 1 with a long remember time (${ratelimits.remember}ms). This may be too restrictive.`,
         );
@@ -244,7 +250,9 @@ export class RouteValidator {
     console.log(
       `${chalk.red(' ║\n ╚═»')} ${
         this.invalid
-          ? chalk.underline.red('The route is invalid and may not work correctly.')
+          ? chalk.underline.red(
+              'The route is invalid and may not work correctly.',
+            )
           : chalk.underline.yellowBright(
               "The route was loaded. Please don't forget to fix the issues.",
             )
@@ -252,4 +260,3 @@ export class RouteValidator {
     );
   }
 }
-

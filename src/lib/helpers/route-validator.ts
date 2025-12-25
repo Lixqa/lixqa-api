@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import { Route } from '../structures/route';
-import { Logger } from './logger';
 import type { RouteMethod } from '../typings';
 
 const ROUTE_METHODS: RouteMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
@@ -8,6 +7,12 @@ const ROUTE_METHODS: RouteMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 interface ValidationIssue {
   type: 'error' | 'warning';
   message: string;
+}
+
+export interface ValidationResult {
+  route: Route;
+  issues: ValidationIssue[];
+  invalid: boolean;
 }
 
 export class RouteValidator {
@@ -19,7 +24,7 @@ export class RouteValidator {
     this.route = route;
   }
 
-  validate(): boolean {
+  validate(): ValidationResult {
     this.issues = [];
     this.invalid = false;
 
@@ -101,20 +106,19 @@ export class RouteValidator {
       }
     }
 
-    // Display issues
-    this.dump();
-
-    return !this.invalid;
+    return {
+      route: this.route,
+      issues: this.issues,
+      invalid: this.invalid,
+    };
   }
 
   private warn(message: string) {
     this.issues.push({ type: 'warning', message });
-    Logger.warning(message, this.route.path);
   }
 
   private error(message: string) {
     this.issues.push({ type: 'error', message });
-    Logger.error(`[${this.route.path}] ${message}`);
     this.invalid = true;
   }
 
@@ -232,31 +236,72 @@ export class RouteValidator {
     }
   }
 
-  private dump() {
-    if (this.issues.length === 0) return;
+  static displayValidationResults(
+    results: ValidationResult[],
+    duplicatePaths: Map<string, string[]>,
+  ) {
+    // Filter out routes with no issues
+    const routesWithIssues = results.filter((r) => r.issues.length > 0);
 
-    // Sort: errors first, then warnings
-    this.issues.sort((a, b) => {
-      if (a.type === 'error' && b.type === 'warning') return -1;
-      if (a.type === 'warning' && b.type === 'error') return 1;
-      return 0;
-    });
+    // If no issues, return early
+    if (routesWithIssues.length === 0 && duplicatePaths.size === 0) {
+      return;
+    }
 
-    console.log(chalk.red(`[E] ${chalk.bold(this.route.path)}`));
-    this.issues.forEach(({ type, message }) => {
-      const color = type === 'error' ? chalk.red : chalk.yellow;
-      console.log(` ${chalk.red('╠═●')} ${color(message)}`);
-    });
-    console.log(
-      `${chalk.red(' ║\n ╚═»')} ${
-        this.invalid
-          ? chalk.underline.red(
-              'The route is invalid and may not work correctly.',
-            )
-          : chalk.underline.yellowBright(
-              "The route was loaded. Please don't forget to fix the issues.",
-            )
-      }`,
-    );
+    console.log(chalk.gray('\n' + '═'.repeat(60)));
+    console.log(chalk.bold.yellow('Route Validation Results'));
+    console.log(chalk.gray('═'.repeat(60) + '\n'));
+
+    // Display duplicate paths first
+    if (duplicatePaths.size > 0) {
+      console.log(chalk.yellow('⚠ Duplicate Route Paths:\n'));
+      duplicatePaths.forEach((filePaths, routePath) => {
+        if (filePaths.length > 1) {
+          console.log(`  ${chalk.yellow('●')} ${chalk.bold(routePath)}`);
+          filePaths.forEach((filePath) => {
+            console.log(`    ${chalk.gray('└─')} ${chalk.gray(filePath)}`);
+          });
+          console.log(
+            `    ${chalk.yellow('→')} Both routes are disabled due to path conflict.\n`,
+          );
+        }
+      });
+    }
+
+    // Sort routes by path for consistent output
+    routesWithIssues.sort((a, b) => a.route.path.localeCompare(b.route.path));
+
+    // Display route issues
+    if (routesWithIssues.length > 0) {
+      console.log(chalk.yellow('Route Issues:\n'));
+
+      routesWithIssues.forEach((result) => {
+        // Sort issues: errors first, then warnings
+        result.issues.sort((a, b) => {
+          if (a.type === 'error' && b.type === 'warning') return -1;
+          if (a.type === 'warning' && b.type === 'error') return 1;
+          return 0;
+        });
+
+        const hasErrors = result.issues.some((i) => i.type === 'error');
+        const prefix = hasErrors ? chalk.red('[E]') : chalk.yellow('[W]');
+
+        console.log(`${prefix} ${chalk.bold(result.route.path)}`);
+
+        result.issues.forEach(({ type, message }) => {
+          const color = type === 'error' ? chalk.red : chalk.yellow;
+          console.log(` ${chalk.gray('└─')} ${color(message)}`);
+        });
+
+        const statusColor = result.invalid ? chalk.red : chalk.yellow;
+        const statusText = result.invalid
+          ? 'The route is invalid and may not work correctly.'
+          : "The route was loaded. Please don't forget to fix the issues.";
+
+        console.log(` ${chalk.gray('╚═»')} ${statusColor(statusText)}\n`);
+      });
+    }
+
+    console.log(chalk.gray('═'.repeat(60) + '\n'));
   }
 }

@@ -6,7 +6,10 @@ import { Schema } from '../structures/schema';
 import { match } from 'path-to-regexp';
 import { Collection } from '@discordjs/collection';
 import { findFilesRecursive } from '../helpers/utils';
-import { RouteValidator } from '../helpers/route-validator';
+import {
+  RouteValidator,
+  type ValidationResult,
+} from '../helpers/route-validator';
 
 export class RouteManager {
   items: Collection<string, Route> = new Collection();
@@ -215,44 +218,60 @@ export class RouteManager {
 
   validateRoutes() {
     this.server.logger.debug('Validating routes...');
-    let invalidCount = 0;
 
-    // Check for duplicate route paths
-    this.checkDuplicatePaths();
+    // Check for duplicate route paths and disable them
+    const duplicatePaths = this.findAndDisableDuplicatePaths();
 
-    // Validate individual routes
+    // Collect all validation results
+    const validationResults: ValidationResult[] = [];
     this.items.forEach((route) => {
       const validator = new RouteValidator(route);
-      const isValid = validator.validate();
-      if (!isValid) {
-        invalidCount++;
-      }
+      const result = validator.validate();
+      validationResults.push(result);
     });
 
+    // Display all results at once, sorted and organized
+    RouteValidator.displayValidationResults(validationResults, duplicatePaths);
+
+    const invalidCount = validationResults.filter((r) => r.invalid).length;
     this.server.logger.debug(
       `Route validation complete. ${invalidCount} invalid route(s) found.`,
     );
   }
 
-  private checkDuplicatePaths() {
-    const pathMap = new Map<string, string[]>();
+  private findAndDisableDuplicatePaths(): Map<string, string[]> {
+    const pathMap = new Map<string, Route[]>();
 
     // Group routes by their path
     this.items.forEach((route, routePath) => {
       if (!pathMap.has(routePath)) {
         pathMap.set(routePath, []);
       }
-      pathMap.get(routePath)!.push(route.filePath);
+      pathMap.get(routePath)!.push(route);
     });
 
-    // Find duplicates
-    pathMap.forEach((filePaths, routePath) => {
-      if (filePaths.length > 1) {
-        Logger.warning(
-          `Multiple route files resolve to the same path "${routePath}": ${filePaths.join(', ')}. Only one route will be active (the last one loaded).`,
+    // Filter to only duplicates and disable them
+    const duplicates = new Map<string, string[]>();
+    pathMap.forEach((routes, routePath) => {
+      if (routes.length > 1) {
+        // Disable all duplicate routes
+        routes.forEach((route) => {
+          // Set disabled flag in route settings
+          if (!route.file.settings) {
+            route.file.settings = {};
+          }
+          route.file.settings.disabled = true;
+        });
+
+        // Store file paths for display
+        duplicates.set(
+          routePath,
+          routes.map((r) => r.filePath),
         );
       }
     });
+
+    return duplicates;
   }
 
   resolveUrl(url: string) {

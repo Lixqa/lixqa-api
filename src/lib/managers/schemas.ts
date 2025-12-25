@@ -39,4 +39,24 @@ export class SchemaManager {
 
     this.server.logger.debug(`Schema initialization complete. Total schemas: ${this.items.size}`);
   }
+
+  validateSchemas(routes: Collection<string, any>) {
+    this.server.logger.debug('Validating schemas...');
+    let orphanedCount = 0;
+
+    this.items.forEach((schema) => {
+      const matchingRoute = routes.find((route) => route.path === schema.path);
+      if (!matchingRoute) {
+        Logger.warning(
+          `Schema file found for "${schema.path}" but no matching route exists. The schema will be ignored.`,
+          schema.filePath,
+        );
+        orphanedCount++;
+      }
+    });
+
+    this.server.logger.debug(
+      `Schema validation complete. ${orphanedCount} orphaned schema(s) found.`,
+    );
+  }
 }

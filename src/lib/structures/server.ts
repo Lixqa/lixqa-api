@@ -385,6 +385,12 @@ export class Server<TAuth = any, TServices = undefined> {
     this.logger.debug('Merging schemas with routes...');
     this.routes.mergeSchemas(this.schemas.items);
 
+    this.logger.debug('Validating schemas...');
+    this.schemas.validateSchemas(this.routes.items);
+
+    this.logger.debug('Validating routes...');
+    this.routes.validateRoutes();
+
     this.logger.debug('Server initialization complete');
   }
 

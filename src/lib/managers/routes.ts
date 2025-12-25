@@ -6,6 +6,7 @@ import { Schema } from '../structures/schema';
 import { match } from 'path-to-regexp';
 import { Collection } from '@discordjs/collection';
 import { findFilesRecursive } from '../helpers/utils';
+import { RouteValidator } from '../helpers/route-validator';
 
 export class RouteManager {
   items: Collection<string, Route> = new Collection();
@@ -210,6 +211,48 @@ export class RouteManager {
     this.server.logger.debug(
       `Schema merge complete. Merged ${mergedCount}/${schemas.size} schemas`,
     );
+  }
+
+  validateRoutes() {
+    this.server.logger.debug('Validating routes...');
+    let invalidCount = 0;
+
+    // Check for duplicate route paths
+    this.checkDuplicatePaths();
+
+    // Validate individual routes
+    this.items.forEach((route) => {
+      const validator = new RouteValidator(route);
+      const isValid = validator.validate();
+      if (!isValid) {
+        invalidCount++;
+      }
+    });
+
+    this.server.logger.debug(
+      `Route validation complete. ${invalidCount} invalid route(s) found.`,
+    );
+  }
+
+  private checkDuplicatePaths() {
+    const pathMap = new Map<string, string[]>();
+
+    // Group routes by their path
+    this.items.forEach((route, routePath) => {
+      if (!pathMap.has(routePath)) {
+        pathMap.set(routePath, []);
+      }
+      pathMap.get(routePath)!.push(route.filePath);
+    });
+
+    // Find duplicates
+    pathMap.forEach((filePaths, routePath) => {
+      if (filePaths.length > 1) {
+        Logger.warning(
+          `Multiple route files resolve to the same path "${routePath}": ${filePaths.join(', ')}. Only one route will be active (the last one loaded).`,
+        );
+      }
+    });
   }
 
   resolveUrl(url: string) {

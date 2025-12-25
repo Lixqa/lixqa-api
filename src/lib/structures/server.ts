@@ -53,7 +53,6 @@ export class Server<TAuth = any, TServices = undefined> {
   }) => void;
   startupStats: StartupStats = {
     warnings: 0,
-    deprecationWarnings: 0,
     errors: 0,
     routesLoaded: 0,
     schemasLoaded: 0,

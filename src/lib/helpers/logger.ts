@@ -5,7 +5,6 @@ import { Middleware } from '../structures/middleware';
 
 export interface StartupStats {
   warnings: number;
-  deprecationWarnings: number;
   errors: number;
   routesLoaded: number;
   schemasLoaded: number;
@@ -123,11 +122,6 @@ ${prefix}
           `${statsPrefix} ${chalk.yellow('Warnings:')} ${chalk.yellow.bold(stats.warnings)}`,
         );
       }
-      if (stats.deprecationWarnings > 0) {
-        statsLines.push(
-          `${statsPrefix} ${chalk.yellow('Deprecation Warnings:')} ${chalk.yellow.bold(stats.deprecationWarnings)}`,
-        );
-      }
 
       if (statsLines.length > 0) {
         console.info(
@@ -149,7 +143,7 @@ ${statsPrefix}
 
   static deprecationWarning(message: string, location?: string) {
     if (Logger.statsTracker) {
-      Logger.statsTracker.deprecationWarnings++;
+      Logger.statsTracker.warnings++;
     }
     console.warn(
       chalk.gray('[', chalk.yellow('⚠'), ']'),

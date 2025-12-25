@@ -260,17 +260,10 @@ export class RouteValidator {
 
     // Check params (query must be z.object() so no deprecation check needed)
     if (schema.params && isZodObject(schema.params)) {
-      // Add as a deprecation warning issue
-      this.issues.push({
-        type: 'warning',
-        message:
-          'Using z.object() for params schema is deprecated. Use a plain object instead: params: { userId: z.string() }',
-      });
-      // Also update stats tracker for deprecation warnings
-      const statsTracker = Logger.getStatsTracker();
-      if (statsTracker) {
-        statsTracker.deprecationWarnings++;
-      }
+      // Add as a warning issue (deprecation warnings are counted as warnings)
+      this.warn(
+        'Using z.object() for params schema is deprecated. Use a plain object instead: params: { userId: z.string() }',
+      );
     }
   }
 

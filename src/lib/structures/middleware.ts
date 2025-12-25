@@ -1,4 +1,5 @@
 import type { MiddlewareDefinition } from '../typings/middleware';
+import { Logger } from '../helpers/logger';
 
 export class Middleware {
   filePath: string;
@@ -14,7 +15,8 @@ export class Middleware {
       const middlewareModule = require(this.filePath);
       return middlewareModule.default || middlewareModule;
     } catch (error) {
-      console.warn(`Failed to load middleware ${this.filePath}:`, error);
+      Logger.warning(`Failed to load middleware ${this.filePath}:`);
+      Logger.error(`Failed to load middleware ${this.filePath}:`, error);
       return { fn: () => {} } as MiddlewareDefinition;
     }
   }

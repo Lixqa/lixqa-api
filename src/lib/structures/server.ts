@@ -6,7 +6,7 @@ import express, {
 import { API } from './api';
 import cors from 'cors';
 import type { Config, Request, Response, RouteMethod } from '../typings';
-import { Logger } from '../helpers/logger';
+import { Logger, type StartupStats } from '../helpers/logger';
 import { DebugLogger } from '../helpers/debug';
 import { StatusCodes } from 'http-status-codes';
 import { RouteManager } from '../managers/routes';
@@ -51,6 +51,14 @@ export class Server<TAuth = any, TServices = undefined> {
     api: API<unknown, unknown, unknown, unknown, TAuth, TServices>;
     error: unknown;
   }) => void;
+  startupStats: StartupStats = {
+    warnings: 0,
+    deprecationWarnings: 0,
+    errors: 0,
+    routesLoaded: 0,
+    schemasLoaded: 0,
+    middlewaresLoaded: 0,
+  };
 
   constructor(setup: {
     authenticationMethod: ({
@@ -357,6 +365,9 @@ export class Server<TAuth = any, TServices = undefined> {
   }
 
   async init() {
+    // Set up stats tracking for Logger
+    Logger.setStatsTracker(this.startupStats);
+
     this.logger.debug('Server.init() - Starting server initialization');
 
     this.logger.debug('Initializing config...');
@@ -385,7 +396,10 @@ export class Server<TAuth = any, TServices = undefined> {
         Logger.serverStarted({
           port: this.config.port,
           seconds: process.uptime(),
+          stats: this.startupStats,
         });
+        // Clear stats tracker after startup
+        Logger.clearStatsTracker();
         resolve();
       });
     });
@@ -420,8 +434,8 @@ export class Server<TAuth = any, TServices = undefined> {
         });
         return;
       } catch (err) {
-        console.warn(`Failed to load config: ${filePath}`);
-        console.warn(err);
+        Logger.warning(`Failed to load config: ${filePath}`);
+        Logger.error(`Failed to load config: ${filePath}`, err);
         this.logger.debug(`Failed to load config: ${filePath}`, err);
       }
     }

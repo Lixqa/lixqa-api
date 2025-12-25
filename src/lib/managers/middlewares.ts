@@ -39,7 +39,7 @@ export class MiddlewareManager {
           Logger.middlewareLoaded(middleware);
           this.server.logger.debug(`Loaded middleware: ${filePath}`);
         } catch (error) {
-          console.error(`Failed to load middleware ${filePath}:`, error);
+          Logger.error(`Failed to load middleware ${filePath}:`, error);
           this.server.logger.debug(`Failed to load middleware ${filePath}:`, error);
         }
       }
@@ -48,10 +48,10 @@ export class MiddlewareManager {
     } catch (error) {
       // Routes directory doesn't exist, that's okay (will be handled by RouteManager)
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        console.warn(
+        Logger.warning(
           `Failed to initialize middleware from routes directory:`,
-          error,
         );
+        Logger.error('Failed to initialize middleware from routes directory:', error);
         this.server.logger.debug('Failed to initialize middleware from routes directory:', error);
       } else {
         this.server.logger.debug('Routes directory does not exist, skipping middleware loading');

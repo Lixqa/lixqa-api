@@ -18,7 +18,8 @@ export class Schema {
       const routeModule = require(this.filePath);
       return routeModule.default || routeModule;
     } catch (error) {
-      console.warn(`Failed to load ${this.filePath}:`, error);
+      Logger.warning(`Failed to load ${this.filePath}:`);
+      Logger.error(`Failed to load ${this.filePath}:`, error);
       return {} as SchemaDefinition;
     }
   }

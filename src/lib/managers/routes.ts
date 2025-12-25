@@ -70,7 +70,7 @@ export class RouteManager {
         this.items.set(route.path, route);
         Logger.routeLoaded(route);
       } catch (error) {
-        console.error(`Failed to load route ${filePath}:`, error);
+        Logger.error(`Failed to load route ${filePath}:`, error);
       }
     }
 
@@ -173,7 +173,7 @@ export class RouteManager {
           `loadInternalRoutes() - Successfully loaded route ${route.path}`,
         );
       } catch (error) {
-        console.error(`Failed to load internal route ${filePath}:`, error);
+        Logger.error(`Failed to load internal route ${filePath}:`, error);
         this.server.logger.debug(
           `loadInternalRoutes() - Failed to load internal route ${filePath}:`,
           error,

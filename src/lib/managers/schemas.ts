@@ -32,7 +32,7 @@ export class SchemaManager {
         Logger.schemaLoaded(schema);
         this.server.logger.debug(`Loaded schema: ${schema.path} (from ${filePath})`);
       } catch (error) {
-        console.error(`Failed to load schema ${filePath}:`, error);
+        Logger.error(`Failed to load schema ${filePath}:`, error);
         this.server.logger.debug(`Failed to load schema ${filePath}:`, error);
       }
     }

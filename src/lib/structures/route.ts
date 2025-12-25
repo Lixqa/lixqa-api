@@ -1,6 +1,7 @@
 import { filePathToRoutePath } from '../helpers/parser';
 import type { RouteDefinition, RouteMethod } from '../typings';
 import { Schema } from './schema';
+import { Logger } from '../helpers/logger';
 
 export class Route {
   server: any;
@@ -19,7 +20,8 @@ export class Route {
       const routeModule = require(this.filePath);
       return routeModule.default || routeModule;
     } catch (error) {
-      console.warn(`Failed to load handlers for ${this.filePath}:`, error);
+      Logger.warning(`Failed to load handlers for ${this.filePath}:`);
+      Logger.error(`Failed to load handlers for ${this.filePath}:`, error);
       return {} as RouteDefinition;
     }
   }

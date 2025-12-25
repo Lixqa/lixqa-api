@@ -68,9 +68,10 @@ export class RouteManager {
         // Don't log here - will be handled in validation
         if (reservedPaths.has(route.path)) {
           this.server.logger.debug(
-            `CONFLICT DETECTED: Route "${route.path}" is reserved`,
+            `CONFLICT DETECTED: Route "${route.path}" is reserved - will be ignored`,
           );
-          // Still add the route so it can be validated and shown in validation results
+          // Still add the route temporarily so it can be validated and shown in validation results
+          // It will be removed after validation
           this.items.set(route.path, route);
         } else {
           this.items.set(route.path, route);
@@ -227,10 +228,23 @@ export class RouteManager {
 
     // Collect all validation results
     const validationResults: ValidationResult[] = [];
+    const routesToRemove: string[] = [];
+
     this.items.forEach((route) => {
       const validator = new RouteValidator(route, this.reservedPaths);
       const result = validator.validate();
       validationResults.push(result);
+
+      // Mark reserved routes for removal (they won't be loaded)
+      if (this.reservedPaths.has(route.path)) {
+        routesToRemove.push(route.path);
+      }
+    });
+
+    // Remove reserved routes from items (they won't be loaded)
+    routesToRemove.forEach((path) => {
+      this.items.delete(path);
+      this.server.logger.debug(`Removed reserved route: ${path}`);
     });
 
     // Display all results at once, sorted and organized

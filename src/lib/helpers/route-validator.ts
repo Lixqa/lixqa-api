@@ -15,6 +15,7 @@ export interface ValidationResult {
   route: Route;
   issues: ValidationIssue[];
   invalid: boolean;
+  isReserved?: boolean;
 }
 
 export class RouteValidator {
@@ -33,9 +34,10 @@ export class RouteValidator {
     this.invalid = false;
 
     // Check if route is reserved
-    if (this.reservedPaths.has(this.route.path)) {
+    const isReserved = this.reservedPaths.has(this.route.path);
+    if (isReserved) {
       this.warn(
-        `Route "${this.route.path}" is reserved and will be overridden by the built-in route.`,
+        `Route "${this.route.path}" is reserved. Your route will be ignored and the built-in route will be used instead.`,
       );
     }
 
@@ -124,6 +126,7 @@ export class RouteValidator {
       route: this.route,
       issues: this.issues,
       invalid: this.invalid,
+      isReserved: this.reservedPaths.has(this.route.path),
     };
   }
 
@@ -357,9 +360,16 @@ export class RouteValidator {
         });
 
         const statusColor = result.invalid ? chalk.red : chalk.yellow;
-        const statusText = result.invalid
-          ? 'The route is invalid and may not work correctly.'
-          : "The route was loaded. Please don't forget to fix the issues.";
+        let statusText: string;
+        if (result.isReserved) {
+          statusText =
+            'The route was ignored. The built-in route will be used instead.';
+        } else if (result.invalid) {
+          statusText = 'The route is invalid and may not work correctly.';
+        } else {
+          statusText =
+            "The route was loaded. Please don't forget to fix the issues.";
+        }
 
         console.log(` ${chalk.gray('└─')} ${statusColor(statusText)}\n`);
       });

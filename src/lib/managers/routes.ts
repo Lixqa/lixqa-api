@@ -13,6 +13,7 @@ import {
 
 export class RouteManager {
   items: Collection<string, Route> = new Collection();
+  reservedPaths: Set<string> = new Set();
 
   server: any;
 
@@ -30,6 +31,9 @@ export class RouteManager {
     this.server.logger.debug('Loading internal routes...');
     const { routes: internalRoutes, paths: reservedPaths } =
       this.loadInternalRoutes();
+
+    // Store reserved paths for validation
+    this.reservedPaths = reservedPaths;
 
     this.server.logger.debug(
       `Internal routes loaded: ${internalRoutes.size} routes, ${reservedPaths.size} reserved paths`,
@@ -61,18 +65,17 @@ export class RouteManager {
         );
 
         // Dynamically check if user route conflicts with any reserved internal route
+        // Don't log here - will be handled in validation
         if (reservedPaths.has(route.path)) {
-          Logger.warning(
-            `Route "${route.path}" is reserved and will be overridden by the built-in route.`,
-          );
           this.server.logger.debug(
             `CONFLICT DETECTED: Route "${route.path}" is reserved`,
           );
-          continue; // Skip adding user's route
+          // Still add the route so it can be validated and shown in validation results
+          this.items.set(route.path, route);
+        } else {
+          this.items.set(route.path, route);
+          Logger.routeLoaded(route);
         }
-
-        this.items.set(route.path, route);
-        Logger.routeLoaded(route);
       } catch (error) {
         Logger.error(`Failed to load route ${filePath}:`, error);
       }
@@ -225,7 +228,7 @@ export class RouteManager {
     // Collect all validation results
     const validationResults: ValidationResult[] = [];
     this.items.forEach((route) => {
-      const validator = new RouteValidator(route);
+      const validator = new RouteValidator(route, this.reservedPaths);
       const result = validator.validate();
       validationResults.push(result);
     });

@@ -21,14 +21,23 @@ export class RouteValidator {
   private route: Route;
   private issues: ValidationIssue[] = [];
   private invalid = false;
+  private reservedPaths: Set<string>;
 
-  constructor(route: Route) {
+  constructor(route: Route, reservedPaths: Set<string> = new Set()) {
     this.route = route;
+    this.reservedPaths = reservedPaths;
   }
 
   validate(): ValidationResult {
     this.issues = [];
     this.invalid = false;
+
+    // Check if route is reserved
+    if (this.reservedPaths.has(this.route.path)) {
+      this.warn(
+        `Route "${this.route.path}" is reserved and will be overridden by the built-in route.`,
+      );
+    }
 
     // Get available methods (handlers that exist)
     const availableMethods = this.route.methods;

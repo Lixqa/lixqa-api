@@ -12,13 +12,7 @@ function normalizeSchemaDefinition<T extends SchemaDefinition>(schema: T): T {
 
   // Normalize params if it exists (allow plain objects)
   if (normalized.params) {
-    // Check if it's using deprecated z.object() syntax
-    if (isZodObject(normalized.params)) {
-      Logger.deprecationWarning(
-        'Using z.object() for params schema is deprecated. Use a plain object instead: params: { userId: z.string() }',
-        'defineSchema',
-      );
-    }
+    // Don't log deprecation warning here - it will be handled in route validation
     if (!('_def' in normalized.params)) {
       normalized.params = normalizeObjectSchema(normalized.params);
     }

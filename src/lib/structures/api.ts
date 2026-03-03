@@ -46,7 +46,9 @@ export class API<
   async authorize() {
     if (!this.route) return;
 
-    this.server.logger.debug(`Authorizing request: ${this.method} ${this.route.path}`);
+    this.server.logger.debug(
+      `Authorizing request: ${this.method} ${this.route.path}`,
+    );
 
     const settings = this.route.settingsFor(this.method);
 
@@ -113,8 +115,10 @@ export class API<
     this.authentication = authentication;
   }
 
-  validateSchema() {
-    this.server.logger.debug(`Validating schema for: ${this.method} ${this.route?.path || 'unknown'}`);
+  async validateSchema() {
+    this.server.logger.debug(
+      `Validating schema for: ${this.method} ${this.route?.path || 'unknown'}`,
+    );
 
     const errors: {
       [key in 'body' | 'params' | 'query' | 'files']:
@@ -137,7 +141,7 @@ export class API<
     const schema = this.route.schema?.file;
 
     const methodSchema = schema?.[method];
-    
+
     if (!methodSchema) {
       this.server.logger.debug('No schema defined for this method');
     }
@@ -151,7 +155,7 @@ export class API<
       if (!this.body) {
         console.warn('Request body is missing.');
       }
-      const result = methodSchema.body.safeParse(this.body);
+      const result = await methodSchema.body.safeParseAsync(this.body);
       if (!result.success) {
         console.warn('Request body validation failed.');
         errors.body = z.formatError(result.error);
@@ -171,7 +175,7 @@ export class API<
       // Always validate against the raw array, shape is enforced by server naming rule already
       const rawFiles = ((this.req as any)._filesRaw ??
         (this.req as any)._files) as any;
-      const result = filesSchema.safeParse(rawFiles);
+      const result = await filesSchema.safeParseAsync(rawFiles);
       if (!result.success) {
         console.warn('Files validation failed.');
         errors.files = z.formatError(result.error);
@@ -183,7 +187,7 @@ export class API<
     // Validate global params schema if it exists
     if (schema?.params) {
       const paramsSchema = normalizeObjectSchema(schema.params as any);
-      const result = paramsSchema.safeParse(this.params);
+      const result = await paramsSchema.safeParseAsync(this.params);
       if (!result.success) {
         console.warn('Request params validation failed.', this.params);
         errors.params = z.formatError(result.error);
@@ -195,7 +199,7 @@ export class API<
     // Validate query params from method-specific schema
     // Query must be a z.object() (enforced by TypeScript), so no normalization needed
     if (methodSchema?.query) {
-      const result = methodSchema.query.safeParse(this.query);
+      const result = await methodSchema.query.safeParseAsync(this.query);
       if (!result.success) {
         console.warn('Request query validation failed.');
         errors.query = z.formatError(result.error);

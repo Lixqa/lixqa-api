@@ -323,7 +323,7 @@ export class Server<TAuth = any, TServices = undefined> {
       }
 
       this.logger.debug('Validating schema...');
-      const errors = api.validateSchema();
+      const errors = await api.validateSchema();
 
       const hasErrors = Object.values(errors).some((e) => e !== undefined);
 

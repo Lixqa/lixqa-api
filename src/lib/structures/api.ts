@@ -367,4 +367,12 @@ export class API<
         return data;
     }
   }
+
+  get _req() {
+    return this.req;
+  }
+
+  get _res() {
+    return this.res;
+  }
 }

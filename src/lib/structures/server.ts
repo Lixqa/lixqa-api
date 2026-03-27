@@ -160,7 +160,14 @@ export class Server<TAuth = any, TServices = undefined> {
       },
     );
 
-    this.app.use(express.json({ type: 'application/json' }));
+    this.app.use(
+      express.json({
+        type: 'application/json',
+        verify(req: Request, _, buf) {
+          req._rawBody = buf;
+        },
+      }),
+    );
     this.app.use(express.urlencoded({ extended: true }));
 
     // multipart/form-data support for both forms and file uploads will be applied after route resolution

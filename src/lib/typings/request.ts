@@ -21,10 +21,10 @@ export interface Request<TAuth = any, TServices = undefined>
   };
   _files?: UploadedFile[];
   _filesRaw?: UploadedFile[];
+  _rawBody?: Buffer;
 }
 
 /**
  * Express Response type
  */
 export type Response = ExpressResponse;
-

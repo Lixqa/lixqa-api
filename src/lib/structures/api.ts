@@ -89,6 +89,7 @@ export class API<
     const authenticationCall = this.server.authenticationMethod({
       token,
       server: this.server,
+      route: this.route,
     });
     const authentication =
       authenticationCall instanceof Promise

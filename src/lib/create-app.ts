@@ -7,14 +7,17 @@ import type {
   MiddlewareDefinition,
 } from './typings';
 import { API } from './structures/api';
+import { Route } from './structures/route';
 
 // Helper type to extract the return type from authenticationMethod
 type ExtractAuthType<T> = T extends ({
   token,
   server,
+  route,
 }: {
   token: string;
   server: Server<unknown, unknown>;
+  route: Route;
 }) => infer R
   ? Awaited<R>
   : never;
@@ -23,9 +26,11 @@ function createApp<
   TAuthMethod extends ({
     token,
     server,
+    route,
   }: {
     token: string;
     server: Server<unknown, unknown>;
+    route: Route;
   }) => Promise<unknown> | unknown,
   TAuth = ExtractAuthType<TAuthMethod>,
   TServices = undefined,
@@ -63,9 +68,11 @@ function createApp<
     authenticationMethod: authenticationMethod as ({
       token,
       server,
+      route,
     }: {
       token: string;
       server: Server<TAuth, TServices>;
+      route: Route;
     }) => Promise<TAuth> | TAuth,
     routesBasePath,
     services,

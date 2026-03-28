@@ -21,6 +21,7 @@ import fs from 'fs';
 import multer from 'multer';
 import { createMulterStorage } from '../helpers/file-validators';
 import { FileValidationOptions } from '../helpers/file-validators';
+import { Route } from './route';
 
 export const msgpackInstance = msgpack();
 
@@ -38,9 +39,11 @@ export class Server<TAuth = any, TServices = undefined> {
   authenticationMethod: ({
     token,
     server,
+    route,
   }: {
     token: string;
     server: Server<TAuth, TServices>;
+    route: Route;
   }) => Promise<TAuth> | TAuth;
   routesBasePath: string;
   services: TServices;
@@ -63,9 +66,11 @@ export class Server<TAuth = any, TServices = undefined> {
     authenticationMethod: ({
       token,
       server,
+      route,
     }: {
       token: string;
       server: Server<TAuth, TServices>;
+      route: Route;
     }) => Promise<TAuth> | TAuth;
     routesBasePath: string;
     services?: TServices;

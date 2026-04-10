@@ -315,7 +315,8 @@ export class Server<TAuth = any, TServices = undefined> {
       }
 
       this.logger.debug('Checking rate limits...');
-      if (this.ratelimits.check(api)) {
+      const limited = await this.ratelimits.check(api);
+      if (limited) {
         this.logger.debug('Rate limit exceeded, throwing 429');
         api.throw(StatusCodes.TOO_MANY_REQUESTS);
       }

@@ -17,7 +17,7 @@ export type RouteDefinition<
   settings?: Partial<RouteSettings<TAuth, TServices>> & {
     [M in RouteMethod]?: Partial<RouteSettings<TAuth, TServices>>;
   };
-  ratelimits?: Partial<RouteRatelimits> & {
-    [M in RouteMethod]?: Partial<RouteRatelimits>;
+  ratelimits?: Partial<RouteRatelimits<TAuth, TServices>> & {
+    [M in RouteMethod]?: Partial<RouteRatelimits<TAuth, TServices>>;
   };
 };

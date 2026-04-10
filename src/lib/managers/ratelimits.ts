@@ -18,15 +18,18 @@ export class RatelimitManager {
     setInterval(() => this.cleanup(), 100);
   }
 
-  check(api: API<any, any, any, any, any, any>) {
+  async check(api: API<any, any, any, any, any, any>) {
     if (!api.route) return false;
 
     const settings = api.route.ratelimitsFor(api.method);
+    const limit = settings.limitFn
+      ? await settings.limitFn(api)
+      : settings.limit;
     const clientIdentifier = this.getClientIdentifier(api);
     const routeIdentifier = this.getRouteIdentifier(api);
 
     api.server.logger.debug(
-      `Ratelimit check: client=${clientIdentifier}, route=${routeIdentifier}, limit=${settings.limit}, scope=${settings.scope}`,
+      `Ratelimit check: client=${clientIdentifier}, route=${routeIdentifier}, limit=${limit}, scope=${settings.scope}`,
     );
 
     let item = this.items.find(
@@ -47,25 +50,26 @@ export class RatelimitManager {
       api.server.logger.debug('Created new ratelimit item');
     }
 
-    if (item.count >= settings.limit) {
+    if (item.count >= limit) {
       if (item.limited) {
         if (settings.strict) item.end = Date.now() + settings.punishment;
-        api.server.logger.debug('Rate limit already active, extending punishment');
+        api.server.logger.debug(
+          'Rate limit already active, extending punishment',
+        );
       } else {
         item.limited = true;
         item.end =
           Date.now() + Math.max(settings.punishment, settings.remember);
-        api.server.logger.debug(`Rate limit exceeded! Count: ${item.count}, Limit: ${settings.limit}`);
+        api.server.logger.debug(
+          `Rate limit exceeded! Count: ${item.count}, Limit: ${limit}`,
+        );
       }
     } else {
-      api.server.logger.debug(`Rate limit OK. Count: ${item.count}/${settings.limit}`);
+      api.server.logger.debug(`Rate limit OK. Count: ${item.count}/${limit}`);
     }
 
-    api.header('X-Ratelimit-Limit', settings.limit.toString());
-    api.header(
-      'X-Ratelimit-Remaining',
-      (settings.limit - item.count).toString(),
-    );
+    api.header('X-Ratelimit-Limit', limit.toString());
+    api.header('X-Ratelimit-Remaining', (limit - item.count).toString());
     api.header('X-Ratelimit-Reset', item.end.toString());
     api.header('X-Ratelimit-Reset-After', (item.end - Date.now()).toString());
     api.header('X-Ratelimit-Scope', settings.scope);
@@ -73,7 +77,7 @@ export class RatelimitManager {
     return item.limited;
   }
 
-  getClientIdentifier(api: API<any, any, any, any, any, any>) {
+  getClientIdentifier(api: API<any, any, any, any, any, any>): string {
     if (!api.route) return `RANDOM:${Random.uuid()}`;
 
     const settings = api.route.ratelimitsFor(api.method);
@@ -125,7 +129,9 @@ export class RatelimitManager {
     );
     if (item && api.route.ratelimitsFor(api.method).limit > item.count) {
       item.count++;
-      api.server.logger.debug(`Increased rate limit count: ${item.count}/${api.route.ratelimitsFor(api.method).limit}`);
+      api.server.logger.debug(
+        `Increased rate limit count: ${item.count}/${api.route.ratelimitsFor(api.method).limit}`,
+      );
     }
   }
 }

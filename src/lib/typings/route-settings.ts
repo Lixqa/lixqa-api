@@ -21,12 +21,14 @@ export type RouteSettings<TAuth = any, TServices = undefined> = {
 /**
  * Rate limit configuration
  */
-export type RouteRatelimits = {
+export type RouteRatelimits<TAuth = any, TServices = undefined> = {
   limit: number;
+  limitFn: (
+    api: API<unknown, unknown, unknown, unknown, TAuth, TServices>,
+  ) => number | Promise<number>;
   remember: number;
   punishment: number;
   strict: boolean;
   type: 'endpoint' | 'parameter';
   scope: 'ip' | 'authentication' | 'global';
 };
-
